@@ -1,0 +1,7 @@
+# 可再生产物：测试宿主与加载项可从 src 一键重建
+build/
+
+# Python
+__pycache__/
+*.pyc
+tools/vba_tests_report.txt
