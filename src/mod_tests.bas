@@ -48,7 +48,7 @@ End Function
 
 Private Function test_tmp_dir() As String
     Dim d As String
-    d = Environ("TEMP") & "\vba_common_test_" & mod_date.Time_String()
+    d = Environ("TEMP") & "\vba_common_test_" & mod_date.Date_Stamp("time")
     mod_file.Folder_Ensure d
     test_tmp_dir = d
 End Function
@@ -75,8 +75,6 @@ Public Function Run_All_Tests(Optional ByVal report_path As String = vbNullStrin
     run_protected "suite_regex"
     run_protected "suite_date"
     run_protected "suite_file"
-    run_protected "suite_workbook"
-    run_protected "suite_range"
     run_protected "suite_dict"
     run_protected "suite_sort"
     run_protected "suite_json"
@@ -96,8 +94,6 @@ Private Sub run_protected(ByVal suite As String)
         Case "suite_regex":    suite_regex
         Case "suite_date":     suite_date
         Case "suite_file":     suite_file
-        Case "suite_workbook": suite_workbook
-        Case "suite_range":    suite_range
         Case "suite_dict":     suite_dict
         Case "suite_sort":     suite_sort
         Case "suite_json":     suite_json
@@ -153,10 +149,10 @@ End Sub
 
 Private Sub suite_date()
     log_line "--- mod_date ---"
-    Test_True mod_regex.Regex_Test("^\d{8}$", mod_date.Date_String), "Date_String: YYYYMMDD"
-    Test_True mod_regex.Regex_Test("^\d{6}$", mod_date.Time_String), "Time_String: hhmmss"
-    Test_Equal (Len(mod_date.DateTime_String)), 14, "DateTime_String: 长度"
-    Test_Equal (Len(mod_date.Full_DateTime_String)), 16, "Full_DateTime_String: 长度"
+    Test_True mod_regex.Regex_Test("^\d{8}$", mod_date.Date_Stamp("date")), "Date_Stamp(date): YYYYMMDD"
+    Test_True mod_regex.Regex_Test("^\d{6}$", mod_date.Date_Stamp("time")), "Date_Stamp(time): hhmmss"
+    Test_Equal (Len(mod_date.Date_Stamp("datetime"))), 14, "Date_Stamp(datetime): 长度"
+    Test_Equal (Len(mod_date.Date_Stamp())), 16, "Date_Stamp()默认: 长度"
 End Sub
 
 Private Sub suite_file()
@@ -180,16 +176,6 @@ Private Sub suite_file()
     Set fso = CreateObject("Scripting.FileSystemObject")
     If fso.FolderExists(tmp) Then fso.DeleteFolder tmp
     Set fso = Nothing
-End Sub
-
-Private Sub suite_workbook()
-    log_line "--- mod_workbook ---"
-    Test_True mod_workbook.Sheet_Exists("Sheet1", ThisWorkbook), "Sheet_Exists: Sheet1 存在"
-    Test_False mod_workbook.Sheet_Exists("no_such_sheet_9", ThisWorkbook), "Sheet_Exists: 不存在"
-    Test_True mod_workbook.Workbook_Exists(ThisWorkbook.Name), "Workbook_Exists: 自身"
-    Dim names As Variant
-    names = mod_workbook.Workbook_SheetNames(ThisWorkbook)
-    Test_True mod_array.Array_Contains(names, "Sheet1"), "Workbook_SheetNames: 含 Sheet1"
 End Sub
 
 Private Sub suite_dict()
@@ -294,13 +280,4 @@ Private Sub suite_version()
     Test_True (Len(mod_version.Version_String()) > 0), "Version_String: 非空"
     Test_True mod_regex.Regex_Test("^\d+\.\d+\.\d+$", mod_version.Version_String()), "Version_String: 符合 SemVer"
     Test_Equal mod_version.Version_String(), mod_version.LIB_VERSION, "Version_String == LIB_VERSION"
-End Sub
-
-Private Sub suite_range()
-    log_line "--- mod_range ---"
-    Dim r As Range
-    Set r = ThisWorkbook.Sheets(1).Range("A1")
-    Test_Equal mod_range.Range_Address(r), "$A$1", "Range_Address"
-    Test_Equal mod_range.Range_ShiftAddress(r, 1, 0), "'" & r.Worksheet.Name & "'!A2", "Range_ShiftAddress 下移一行"
-    Test_True (InStr(1, mod_range.Range_SheetAddress(r), "'" & r.Worksheet.Name & "'!") > 0), "Range_SheetAddress: 含工作表名"
 End Sub

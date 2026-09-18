@@ -7,7 +7,7 @@ Attribute VB_Name = "mod_workbook"
 '   Workbook_Exists(wbname[, fmt])        As Boolean   工作簿是否已打开(按名,忽略大小写)
 '   Workbook_SheetNames(wb)               As Variant   列出指定工作簿全部工作表名(数组)
 '   Workbook_AllSheetNames()              As Variant   列出所有打开工作簿的工作表名(数组)
-'   Workbook_SaveWithBackup(wb, folder[, prefix])  保存并备份副本(带时间后缀)
+'   Workbook_SaveWithBackup(wb, folder[, prefix, do_save])  保存并备份副本(带时间后缀,确保恢复 DisplayAlerts)
 '=====================================================================
 Option Explicit
 
@@ -61,17 +61,26 @@ End Function
 
 ' 先保存工作簿，再将副本备份到 backup_folder（文件名带时间戳，前缀可配）
 Public Sub Workbook_SaveWithBackup(ByRef wb As Workbook, ByVal backup_folder As String, _
-                                   Optional ByVal prefix As String = "backup_")
+                                   Optional ByVal prefix As String = "backup_", _
+                                   Optional ByVal do_save As Boolean = True)
     Dim ext As String
     Dim dest As String
+    Dim prev_display As Boolean
     If wb Is Nothing Then Exit Sub
-    mod_file.Folder_Ensure backup_folder
     ext = mod_file.File_ExtName(wb.Name)
-    dest = backup_folder & "\" & prefix & mod_date.Full_DateTime_String & "." & ext
+    dest = backup_folder & "\" & prefix & mod_date.Date_Stamp() & "." & ext
+    mod_file.Folder_Ensure backup_folder
+    ' 暂缓警告并保证无论成败都恢复宿主 DisplayAlerts，避免污染调用方状态
+    prev_display = Application.DisplayAlerts
     Application.DisplayAlerts = False
-    wb.Save
+    On Error GoTo fail
+    If do_save Then wb.Save
     wb.SaveCopyAs dest
-    Application.DisplayAlerts = True
+    Application.DisplayAlerts = prev_display
+    Exit Sub
+fail:
+    Application.DisplayAlerts = prev_display
+    Err.Raise Err.Number, Err.Source, Err.Description
 End Sub
 
 Private Function StrCaseEq(ByVal a As String, ByVal b As String) As Boolean

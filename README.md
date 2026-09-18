@@ -12,35 +12,44 @@
 
 ```
 vba_common_lib/
-├── src/                  # 唯一事实来源（进 git）；模块名 mod_*
+├── src/                  # 纯 VBA 层（宿主无关，进 git）；模块名 mod_*
 │   ├── mod_array.bas
 │   ├── mod_string.bas
 │   ├── mod_regex.bas
-│   ├── mod_date.bas
-│   ├── mod_file.bas
-│   ├── mod_workbook.bas
-│   ├── mod_range.bas
+│   ├── mod_date.bas      # Date_Stamp(kind) 统一时间戳
+│   ├── mod_file.bas      # FSO 文件/文件夹（无 UI）
 │   ├── mod_debug.bas
 │   ├── mod_dict.bas      # P1：晚绑定 Dictionary 封装
 │   ├── mod_sort.bas      # P1：稳定排序 / 反转
 │   ├── mod_json.bas      # P1：JSON 解析 / 序列化
-│   └── mod_tests.bas     # 单元测试（TDD：新函数必须在此补断言）
+│   └── mod_tests.bas     # 纯层单元测试（TDD：新函数在此补断言）
+├── xls/                  # Excel 绑定层（依赖 Range/Workbook/Application.FileDialog）
+│   ├── mod_workbook.bas
+│   ├── mod_range.bas
+│   ├── mod_ui.bas        # 文件对话框 File_Pick / Folder_Pick
+│   └── mod_tests_excel.bas  # Excel 层单元测试
 ├── src/VERSION           # 语义化版本号唯一来源（如 1.0.0）；构建时注入 mod_version
 ├── CHANGELOG.md          # 版本变更记录（Keep a Changelog 风格）
 ├── tools/                # Python（win32com 驱动真实 Excel）
-│   ├── vba_excel.py      # 共享封装（启动/清空/导入/打包）
+│   ├── vba_excel.py      # 共享封装（启动/清空/导入/打包，支持多 --src 分层）
 │   ├── vba_import.py     # 一键 清空+导入 到目标 .xlsm
-│   ├── run_tests.py      # 跑 mod_tests 单测，返回失败数
+│   ├── run_tests.py      # 跑单测（--entry 选纯层/Excel 层），返回失败数
 │   ├── vba_build_xlam.py # 打包 .xlam
-│   ├── vba_check_lint.py # 离线静态契约检查（不依赖 Excel，可作 CI 快速门禁）
+│   ├── vba_check_lint.py # 离线静态契约检查（可 CI 门禁）
 │   └── vba_new_host.py   # 新建空宿主 .xlsm（备用）
 ├── build/                # 产物（测试宿主 / .xlam）
 └── README.md
 ```
 
+> **分层原则**：`src/` 只含不依赖 Excel 对象模型的纯 VBA，任何宿主都能编译运行，
+> 可单独打 xlam / 独立测试；`xls/` 绑定 `Range` / `Workbook` / `Application`，
+> 按需随纯层一起导入。`xls/` 可依赖 `src/`，反之不可。
+
 ---
 
-## 功能清单（63 个对外 API · 12 模块）
+## 功能清单（60 个对外 API · 12 个功能模块 = 纯层 9 + Excel 层 3）
+
+### 纯 VBA 层 `src/`（宿主无关）
 
 ### 数组运算 `mod_array`
 `Array_Contains` / `Array_Append` / `Array_Extend` / `Array_Distinct`（保持首见顺序）
@@ -54,18 +63,12 @@ vba_common_lib/
 `Regex_Test` / `Regex_Find` / `Regex_Replace`（全局）
 
 ### 日期时间 `mod_date`
-`Date_String`(YYYYMMDD) / `Time_String`(hhmmss) / `DateTime_String`(YYYY_MMDD_hhmm) / `Full_DateTime_String`(YYYY_MMDD_hhmmss)
+`Date_Stamp(kind)`：`date`(YYYYMMDD) / `time`(hhmmss) / `datetime`(YYYY_MMDD_hhmm) / `stamp`(YYYY_MMDD_hhmmss, 默认，文件名安全)
 
 ### 文件路径 `mod_file`（FSO 晚绑定）
-存在判断：`File_Exists` / `Folder_Exists`；文件操作：`Folder_Ensure` / `File_Copy` / `File_Write`（UTF-8）
+存在判断：`File_Exists` / `Folder_Exists`；文件操作：`Folder_Ensure` / `File_Copy` / `File_Write`（注意默认 `unicode=True` 为 UTF-16）
 路径解析：`File_Name` / `File_BaseName` / `File_ExtName` / `File_Name_Valid`
-`Folder_ListFiles`（可递归）· 对话框：`File_Pick` / `Folder_Pick`
-
-### 工作簿 `mod_workbook`
-`Sheet_Exists` / `Workbook_Exists` / `Workbook_SheetNames` / `Workbook_AllSheetNames` / `Workbook_SaveWithBackup`（带时间戳备份）
-
-### 单元格区域 `mod_range`
-`Range_Address` / `Range_SheetAddress`（带表名）/ `Range_ShiftAddress`（偏移）/ `Range_JoinedAddress`（多区域拼接）
+`Folder_ListFiles`（可递归）
 
 ### 调试输出 `mod_debug`
 `Show_Arr_Members`（维度）/ `Print_Array` / `Print_Clc` / `Print_Dict` / `Print_Lines`
@@ -83,7 +86,18 @@ vba_common_lib/
 > 字典有带参默认属性 `.Item`，用 `=` 会触发 `#450`。
 
 ### 版本 / 测试
-`mod_version`（由 `src/VERSION` 自动生成）· `mod_tests`（TDD 断言框架，85 条断言，套件经 `run_protected` 容错分发）。
+`mod_version`（由 `src/VERSION` 自动生成）· `mod_tests`（TDD 断言框架，纯层套件经 `run_protected` 容错分发）。
+
+### Excel 绑定层 `xls/`（依赖 Excel 宿主，随纯层一起导入）
+
+### 工作簿 `mod_workbook`
+`Sheet_Exists` / `Workbook_Exists` / `Workbook_SheetNames` / `Workbook_AllSheetNames` / `Workbook_SaveWithBackup`（带时间戳备份；`do_save` 可选，出错时自动恢复宿主 `DisplayAlerts`）
+
+### 单元格区域 `mod_range`
+`Range_Address` / `Range_SheetAddress`（带表名）/ `Range_ShiftAddress`（偏移）/ `Range_JoinedAddress`（多区域拼接）
+
+### 对话框 `mod_ui`
+`File_Pick` / `Folder_Pick`（`Application.FileDialog`）
 
 ---
 
@@ -109,7 +123,7 @@ VBA 没有命名空间，「体系」靠 **域名前缀字典 + 模块顶部目�
 | `String_*` | 字符串操作（`String_Trim/Join/Random`） | |
 | `Regex_*` | 正则（`Regex_Test/Find/Replace`） | |
 | `File_*` / `Folder_*` | 文件 / 文件夹（`File_Exists`、`Folder_Ensure`、`Folder_ListFiles`） | |
-| `Date_*` | 日期时间（`Date_String`、`Full_DateTime_String`） | |
+| `Date_*` | 日期时间（`Date_Stamp`） | |
 | `Sheet_*` / `Workbook_*` | 工作表 / 工作簿（`Sheet_Exists`、`Workbook_SheetNames`） | |
 | `Range_*` | Range 地址（`Range_Address`、`Range_ShiftAddress`） | |
 
@@ -128,21 +142,33 @@ VBA 没有命名空间，「体系」靠 **域名前缀字典 + 模块顶部目�
 **文件 > 选项 > 信任中心 > 信任中心设置 > 宏设置 > 勾选『信任对 VBA 工程对象模型的访问』**，
 并重启 Excel。另需 `pip install pywin32`。
 
-### 1. 跑单元测试（推荐每改一次就 `src` 测一遍）
+### 1. 跑单元测试（推荐每改一次就测一遍）
 ```bash
+# 纯 VBA 层（默认 --entry mod_tests）
 python tools/run_tests.py --src src --build build
+# Excel 绑定层（需同时导入 src+xls，入口 mod_tests_excel）
+python tools/run_tests.py --src src --src xls --entry mod_tests_excel --build build
 ```
 退出码 = 失败数；0 表示全部通过。
 
+### 1b. 离线静态契约检查（不依赖 Excel，可进 CI）
+```bash
+python tools/vba_check_lint.py --src src --src xls
+```
+
 ### 2. 一键同步到某个工作簿
 ```bash
+# 纯层
 python tools/vba_import.py --src src --target build/VBA_Common_test.xlsm
+# 纯层 + Excel 绑定层
+python tools/vba_import.py --src src --src xls --target build/VBA_Common_test.xlsm
 # 想保留某些模块不删：--keep mod_importer
 ```
 
 ### 3. 打包成加载项
 ```bash
 python tools/vba_build_xlam.py --src src --out build/VBA_Common.xlam
+python tools/vba_build_xlam.py --src src --src xls --out build/VBA_Common_Full.xlam
 ```
 宿主工作簿：VBE → 工具 → 引用 → 勾选该加载项 → 直接 `mod_array.Array_Contains(...)`。
 

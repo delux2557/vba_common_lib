@@ -3,25 +3,19 @@ Attribute VB_Name = "mod_date"
 ' mod_date - 日期时间 通用工具（通用库 · v1.0）
 '=====================================================================
 ' 目录 / Catalog
-'   Date_String()              As String   YYYYMMDD
-'   Time_String()              As String   hhmmss
-'   DateTime_String()          As String   YYYY_MMDD_hhmm
-'   Full_DateTime_String()     As String   YYYY_MMDD_hhmmss
+'   Date_Stamp([kind])      As String  当前时间戳；kind 决定输出格式
+'                                       kind: date|time|datetime|stamp(默认)
 '=====================================================================
 Option Explicit
 
-Public Function Date_String() As String
-    Date_String = Format$(Now, "YYYYMMDD")
-End Function
-
-Public Function Time_String() As String
-    Time_String = Format$(Now, "hhmmss")
-End Function
-
-Public Function DateTime_String() As String
-    DateTime_String = Format$(Now, "YYYY_MMDD_hhmm")
-End Function
-
-Public Function Full_DateTime_String() As String
-    Full_DateTime_String = Format$(Now, "YYYY_MMDD_hhmmss")
+' 统一取"当前时间戳"并按 kind 格式化；默认 stamp 为文件名安全格式。
+Public Function Date_Stamp(Optional ByVal kind As String = "stamp") As String
+    Dim k As String
+    k = LCase$(kind)
+    Select Case k
+        Case "date":     Date_Stamp = Format$(Now, "YYYYMMDD")              ' 20251031
+        Case "time":     Date_Stamp = Format$(Now, "hhmmss")                ' 143005
+        Case "datetime": Date_Stamp = Format$(Now, "YYYY_MMDD_hhmm")        ' 2025_1031_1430
+        Case Else:       Date_Stamp = Format$(Now, "YYYY_MMDD_hhmmss")      ' 2025_1031_143005
+    End Select
 End Function

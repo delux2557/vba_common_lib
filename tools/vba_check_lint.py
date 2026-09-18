@@ -16,7 +16,9 @@
      对话框 / 跨工作簿 / 真实文件写入等副作用函数豁免（难以自动化断言）。
 
 用法:
-    python tools/vba_check_lint.py --src src [--tests mod_tests.bas]
+    python tools/vba_check_lint.py --src src [--src xls] [--tests <文件>]
+按目录分层：默认 R4 测试覆盖来源为各目录下的 mod_tests.bas，若不存在则回退到
+mod_tests_excel.bas；也可用 --tests 对全部分层统一指定一个测试来源。
 退出码 = 问题数(ERROR 计 2 / WARN 计 1，按严重度加权)，0 表示全部通过。
 """
 from __future__ import annotations
@@ -38,7 +40,7 @@ R4_EXEMPT = {
 }
 
 # 模块级豁免 R4 的模块（测试宿主 / 仅输出立即窗口的调试工具）
-R4_MODULE_EXEMPT = {"mod_tests", "mod_debug"}
+R4_MODULE_EXEMPT = {"mod_tests", "mod_tests_excel", "mod_debug"}
 
 CATALOG_MARKER = "目录 / Catalog"
 
@@ -128,33 +130,48 @@ def check_module(text: str, fname: str, tests_source: str):
     return errors, warnings
 
 
+def resolve_tests_path(dirpath, tests_arg):
+    """确定某个源码目录的 R4 测试覆盖来源。"""
+    if tests_arg is not None:
+        return os.path.abspath(tests_arg)
+    for cand in ("mod_tests.bas", "mod_tests_excel.bas"):
+        p = os.path.join(dirpath, cand)
+        if os.path.exists(p):
+            return os.path.abspath(p)
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser(description="VBA 通用库离线静态契约检查")
-    parser.add_argument("--src", required=True, help="存放 .bas 的源码目录")
-    parser.add_argument("--tests", default=None, help="测试模块文件路径(默认取 src/mod_tests.bas)")
+    parser.add_argument("--src", action="append", required=True,
+                        help="存放 .bas 的源码目录(可多次传入 src/xls 分层目录)")
+    parser.add_argument("--tests", default=None,
+                        help="测试模块覆盖来源(默认按目录自动推断 mod_tests/mod_tests_excel)")
     args = parser.parse_args()
 
-    src = os.path.abspath(args.src)
-    if not os.path.isdir(src):
-        sys.exit(f"[错误] 源码目录不存在: {src}")
+    dirs = [os.path.abspath(d) for d in args.src]
+    missing = [d for d in dirs if not os.path.isdir(d)]
+    if missing:
+        sys.exit(f"[错误] 源码目录不存在: {missing}")
 
-    tests_path = os.path.abspath(args.tests) if args.tests else os.path.join(src, "mod_tests.bas")
-    if not os.path.exists(tests_path):
-        sys.exit(f"[错误] 测试模块不存在: {tests_path}")
-    tests_source = read_utf8(tests_path)
-
-    files = sorted(f for f in os.listdir(src) if f.lower().endswith(".bas"))
     errors = []
     warnings = []
-    for fn in files:
-        text = read_utf8(os.path.join(src, fn))
-        e, w = check_module(text, fn, tests_source)
-        errors += e
-        warnings += w
-        for line in e:
-            print(f"[ERROR] {line}")
-        for line in w:
-            print(f"[WARN ] {line}")
+    for src in dirs:
+        tests_path = resolve_tests_path(src, args.tests)
+        if tests_path is None:
+            errors.append(f"[配置] {src}: 找不到测试模块(mod_tests.bas / mod_tests_excel.bas)，无法执行 R4")
+            continue
+        tests_source = read_utf8(tests_path)
+        files = sorted(f for f in os.listdir(src) if f.lower().endswith(".bas"))
+        for fn in files:
+            text = read_utf8(os.path.join(src, fn))
+            e, w = check_module(text, fn, tests_source)
+            errors += e
+            warnings += w
+            for line in e:
+                print(f"[ERROR] {line}")
+            for line in w:
+                print(f"[WARN ] {line}")
 
     print(f"----- 静态检查：{len(errors)} 错误 / {len(warnings)} 警告 -----")
     sys.exit(len(errors) * 2 + len(warnings))

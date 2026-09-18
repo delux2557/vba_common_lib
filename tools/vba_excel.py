@@ -166,34 +166,42 @@ def version_module(version):
     return VERSION_MODULE_TEMPLATE.replace("__VERSION__", version or "0.0.0")
 
 
-def import_bas(wb, src_dir, pattern=".bas"):
-    """按文件名排序，逐个 Import 指定目录下的模块文件。返回导入列表。
+def import_bas(wb, src_dirs, pattern=".bas"):
+    """按字母序逐个 Import 指定目录下的模块文件。返回导入列表。
 
-    源码为 UTF-8，导入前自动转写成系统 ANSI 临时文件，交给 Excel 正确解析中文。
-    此外会用 src/VERSION 追加生成一个 mod_version 版本查询模块（单一来源，不在 src 落盘）。
+    src_dirs 可传入单个目录(字符串)或多个目录(列表)；分层后调用方通常
+    传入 [src, xls] 两个目录。源码为 UTF-8，导入前自动转写成系统 ANSI
+    临时文件，交给 Excel 正确解析中文。版本模块 mod_version 只从
+    首个存在 VERSION 文件的目录生成一次（单一来源，不在源码落盘）。
     """
     names = []
-    if not os.path.isdir(src_dir):
-        sys.exit(f"[错误] 源码目录不存在: {src_dir}")
+    if isinstance(src_dirs, str):
+        src_dirs = [src_dirs]
     codec = _system_ansi_codec()
-    files = sorted(f for f in os.listdir(src_dir) if f.lower().endswith(pattern))
-    for fn in files:
-        if codec == "utf-8":
-            wb.VBProject.VBComponents.Import(os.path.join(src_dir, fn))
-        else:
-            with io.open(os.path.join(src_dir, fn), "r", encoding="utf-8-sig") as fh:
-                text = fh.read()
-            tmp = _write_import_tmp(fn, text, codec)
-            wb.VBProject.VBComponents.Import(tmp)
-        names.append(fn)
-    # 追加版本查询模块
-    try:
-        vt = version_module(read_version(src_dir))
-        tmp = _write_import_tmp(VERSION_MODULE_NAME + ".bas", vt, codec)
-        wb.VBProject.VBComponents.Import(tmp)
-        names.append(VERSION_MODULE_NAME + ".bas")
-    except Exception:  # noqa: BLE001  版本模块缺失时不影响主流程
-        pass
+    version_generated = False
+    for src_dir in src_dirs:
+        if not os.path.isdir(src_dir):
+            sys.exit(f"[错误] 源码目录不存在: {src_dir}")
+        files = sorted(f for f in os.listdir(src_dir) if f.lower().endswith(pattern))
+        for fn in files:
+            if codec == "utf-8":
+                wb.VBProject.VBComponents.Import(os.path.join(src_dir, fn))
+            else:
+                with io.open(os.path.join(src_dir, fn), "r", encoding="utf-8-sig") as fh:
+                    text = fh.read()
+                tmp = _write_import_tmp(fn, text, codec)
+                wb.VBProject.VBComponents.Import(tmp)
+            names.append(fn)
+        # 版本查询模块：仅在首个含 VERSION 的目录各生成一次
+        if not version_generated and os.path.isfile(os.path.join(src_dir, "VERSION")):
+            try:
+                vt = version_module(read_version(src_dir))
+                tmp = _write_import_tmp(VERSION_MODULE_NAME + ".bas", vt, codec)
+                wb.VBProject.VBComponents.Import(tmp)
+                names.append(VERSION_MODULE_NAME + ".bas")
+                version_generated = True
+            except Exception:  # noqa: BLE001
+                pass
     return names
 
 
@@ -224,8 +232,8 @@ def read_version(src_dir, default="0.0.0"):
         return fh.read().strip() or default
 
 
-def build_xlam(src_dir, out_path, display_name="VBA_Common"):
-    """把 src 下的 .bas 打进一个 .xlam 加载项。"""
+def build_xlam(src_dirs, out_path, display_name="VBA_Common"):
+    """把 src_dirs（可单/多目录）下的 .bas 打进一个 .xlam 加载项。"""
     app = start_excel()
     wb = app.Workbooks.Add()
     # 工作簿必须保留至少一张工作表；裁到只剩 1 张并隐藏，供自检宿主使用
@@ -233,7 +241,7 @@ def build_xlam(src_dir, out_path, display_name="VBA_Common"):
         wb.Worksheets(wb.Worksheets.Count).Delete()
     wb.Worksheets(1).Visible = -1  # xlSheetHidden
     # 说明：ThisWorkbook / 工作表等『文档』代码页不能也不需删除，保持为空即可
-    import_bas(wb, src_dir)  # 含由 src/VERSION 自动生成的 mod_version
+    import_bas(wb, src_dirs)  # 含由首个含 VERSION 的目录生成的 mod_version
     # 加载项属性
     try:
         wb.IsAddIn = True

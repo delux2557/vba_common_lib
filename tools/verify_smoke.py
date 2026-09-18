@@ -11,11 +11,11 @@ x.DisplayAlerts = False
 try:
     wb = x.Workbooks.Open(HOST)
     check = lambda: 0  # noqa
-    r1 = x.Application.Run("mod_date.Date_String")
+    r1 = x.Application.Run("mod_date.Date_Stamp", "date")
     r2 = x.Application.Run("mod_string.String_Trim", "  abc  ")
     r3 = x.Application.Run("mod_regex.Regex_Test", ".hello.", "--helloo--")
     r4 = x.Application.Run("mod_array.Array_Contains", [11, 22, 33], 22)
-    print(f"mod_date.Date_String        = {r1} (len={len(r1)})")
+    print(f"mod_date.Date_Stamp(date)   = {r1} (len={len(r1)})")
     print(f"mod_string.String_Trim      = '{r2}'")
     print(f"mod_regex.Regex_Test        = {r3}")
     print(f"mod_array.Array_Contains    = {r4}")

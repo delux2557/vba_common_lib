@@ -7,14 +7,12 @@ Attribute VB_Name = "mod_file"
 '   Folder_Exists(path)                 As Boolean   文件夹是否存在
 '   Folder_Ensure(path)                 As String    确保文件夹存在(自动创建)，返回 path
 '   File_Copy(from, to[, overwrite])              复制文件
-'   File_Write(path, text[, append])              写入/追加文本(默认 UTF-8)
+'   File_Write(path, text[, append])              写入/追加文本(注意:默认 unicode=True 为 UTF-16,非 UTF-8)
 '   File_Name(path)                     As String    文件名(含扩展名)
 '   File_BaseName(path)                 As String    文件名(不含扩展名)
 '   File_ExtName(path)                  As String    扩展名(不含点)
 '   File_Name_Valid(name)               As Boolean   文件名是否合法
 '   Folder_ListFiles(path[, recursive]) As Variant   列出文件全路径数组
-'   File_Pick([title, filter])          As String    对话框选文件
-'   Folder_Pick([title])                As String    对话框选文件夹
 '=====================================================================
 Option Explicit
 
@@ -137,28 +135,3 @@ Private Sub Walk_Folder(ByVal folder_path As String, ByVal recursive As Boolean,
         Next sf
     End If
 End Sub
-
-Public Function File_Pick(Optional ByVal title As String = "选择文件", _
-                          Optional ByVal filter_desc As String = "所有文件", _
-                          Optional ByVal filter_pattern As String = "*.*") As String
-    Dim dlg As FileDialog
-    Set dlg = Application.FileDialog(msoFileDialogFilePicker)
-    With dlg
-        .Title = title
-        .AllowMultiSelect = False
-        .Filters.Clear
-        .Filters.Add filter_desc, filter_pattern
-        If .Show = -1 Then File_Pick = .SelectedItems(1)
-    End With
-    Set dlg = Nothing
-End Function
-
-Public Function Folder_Pick(Optional ByVal title As String = "选择文件夹") As String
-    Dim dlg As FileDialog
-    Set dlg = Application.FileDialog(msoFileDialogFolderPicker)
-    With dlg
-        .Title = title
-        If .Show = -1 Then Folder_Pick = .SelectedItems(1)
-    End With
-    Set dlg = Nothing
-End Function
