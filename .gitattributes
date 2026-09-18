@@ -1,0 +1,2 @@
+# bash 钩子必须保持 LF，否则 CRLF 会破坏 shebang（#! 行首带 \r）
+tools/hooks/* text eol=lf
