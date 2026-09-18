@@ -11,6 +11,7 @@ Attribute VB_Name = "mod_dict"
 '   Dict_Keys(dict)                   As Variant  所有键(数组)
 '   Dict_Values(dict)                 As Variant  所有值(数组)
 '   Dict_To_Array(dict)               As Variant  -> 二维数组(行=条目, 列1=键,列2=值)
+'   Dict_FromArray(pairs)             As Object   二维数组(键,值) -> 字典(Dict_To_Array 逆)
 '   Dict_Remove(dict, key)                       移除键
 '   Dict_Clear(dict)                            清空
 ' 说明：晚绑定 Scripting.Dictionary，无需勾选外部引用；键区分大小写。
@@ -109,6 +110,19 @@ Public Function Dict_To_Array(ByRef dict As Object) As Variant
         i = i + 1
     Next k
     Dict_To_Array = arr
+End Function
+
+Public Function Dict_FromArray(ByRef pairs As Variant) As Object
+    Dim d As Object
+    Dim r As Long, r0 As Long, r1 As Long
+    Set d = CreateObject("Scripting.Dictionary")
+    If IsArray(pairs) Then
+        r0 = LBound(pairs, 1): r1 = UBound(pairs, 1)
+        For r = r0 To r1
+            d.Add pairs(r, 1), pairs(r, 2)
+        Next r
+    End If
+    Set Dict_FromArray = d
 End Function
 
 Public Sub Dict_Remove(ByRef dict As Object, ByVal key As Variant)

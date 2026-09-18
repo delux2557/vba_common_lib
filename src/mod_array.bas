@@ -10,6 +10,9 @@ Attribute VB_Name = "mod_array"
 '   Array_Append(arr, elem)                            As Variant   尾部追加一个元素
 '   Array_Extend(arr1, arr2)                           As Variant   拼接两个数组
 '   Array_Distinct(arr)                                As Variant   去重（保持首见顺序）
+'   Array_IndexOf(arr, val[, start])     As Long     首个匹配下标(0基, -1=未找到)
+'   Array_Remove(arr, val)               As Variant  删除首个匹配的元素
+'   Array_RemoveAt(arr, idx)             As Variant  按下标删除元素
 '   Array_Map(arr, func_name)                          As Variant   高阶 map（逐元素回调）
 '   Array_Filter(arr, func_name)                       As Variant   高阶 filter
 '   Array_All(arr, func_name)                          As Boolean   高阶 every
@@ -82,6 +85,57 @@ Public Function Array_Distinct(ByRef arr As Variant) As Variant
         unique(idx) = k: idx = idx + 1
     Next k
     Array_Distinct = unique
+End Function
+
+'--- 索引 / 删除 ------------------------------------------------------
+Public Function Array_IndexOf(ByRef arr As Variant, ByVal val As Variant, _
+                              Optional ByVal start_index As Long = 0) As Long
+    Dim i As Long
+    If IsArray(arr) Then
+        For i = start_index + LBound(arr) To UBound(arr)
+            If arr(i) = val Then
+                Array_IndexOf = i - LBound(arr)
+                Exit Function
+            End If
+        Next i
+    End If
+    Array_IndexOf = -1
+End Function
+
+Public Function Array_Remove(ByRef arr As Variant, ByVal val As Variant) As Variant
+    Dim idx As Long
+    idx = Array_IndexOf(arr, val)
+    If idx < 0 Then
+        Array_Remove = arr
+        Exit Function
+    End If
+    Array_Remove = Array_RemoveAt(arr, idx)
+End Function
+
+Public Function Array_RemoveAt(ByRef arr As Variant, ByVal idx As Long) As Variant
+    Dim i As Long, j As Long, n As Long
+    Dim result() As Variant
+    If Not IsArray(arr) Then
+        Array_RemoveAt = Array()
+        Exit Function
+    End If
+    n = UBound(arr) - LBound(arr) + 1
+    If idx < 0 Or idx >= n Then
+        Array_RemoveAt = arr
+        Exit Function
+    End If
+    If n = 1 Then
+        Array_RemoveAt = Array()
+        Exit Function
+    End If
+    ReDim result(0 To n - 2)
+    j = 0
+    For i = LBound(arr) To UBound(arr)
+        If (i - LBound(arr)) <> idx Then
+            result(j) = arr(i): j = j + 1
+        End If
+    Next i
+    Array_RemoveAt = result
 End Function
 
 '--- 高阶函数 ---------------------------------------------------------

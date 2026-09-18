@@ -47,7 +47,7 @@ vba_common_lib/
 
 ---
 
-## 功能清单（60 个对外 API · 12 个功能模块 = 纯层 9 + Excel 层 3）
+## 功能清单（67 个对外 API · 12 个功能模块 = 纯层 9 + Excel 层 3）
 
 ### 纯 VBA 层 `src/`（宿主无关）
 
@@ -55,9 +55,11 @@ vba_common_lib/
 `Array_Contains` / `Array_Append` / `Array_Extend` / `Array_Distinct`（保持首见顺序）
 / `Array_Map` / `Array_Filter` / `Array_All` / `Array_Any`（高阶回调，走 `Application.Run`）
 / `Collection_To_Array` / `Array_To_Collection`
+/ `Array_IndexOf`（0 基，−1=未找到）/ `Array_Remove`（删首个匹配）/ `Array_RemoveAt`（按下标删）
 
 ### 字符串 `mod_string`
 `String_To_Array` / `String_Join` / `String_Trim`（可指定字符集）/ `String_LTrim` / `String_RTrim` / `String_Random`（长度+字符集可选）
+/ `String_StartsWith` / `String_EndsWith` / `String_LeftPad`（左填充到指定长度）
 
 ### 正则 `mod_regex`（晚绑定）
 `Regex_Test` / `Regex_Find` / `Regex_Replace`（全局）
@@ -75,7 +77,8 @@ vba_common_lib/
 
 ### 字典封装 `mod_dict`（晚绑定）
 `Dict_Create` / `Dict_Set` / `Dict_Get`（可带默认值）/ `Dict_Exists` / `Dict_Count`
-/ `Dict_Keys` / `Dict_Values` / `Dict_To_Array`（二维）/ `Dict_Remove` / `Dict_Clear`
+/ `Dict_Keys` / `Dict_Values` / `Dict_To_Array`（二维）/ `Dict_FromArray`（二维数组还原，`Dict_To_Array` 之逆）
+/ `Dict_Remove` / `Dict_Clear`
 
 ### 排序 `mod_sort`
 `Array_Sort`（稳定归并，可选键回调，返回新数组）/ `Array_Reverse`

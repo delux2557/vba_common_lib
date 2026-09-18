@@ -124,6 +124,22 @@ Private Sub suite_array()
     Dim clc As Collection
     Set clc = mod_array.Array_To_Collection(Array("a", "b", "c"))
     Test_Equal canon(mod_array.Collection_To_Array(clc)), "a,b,c", "Collection 往返转换"
+
+    Test_Equal mod_array.Array_IndexOf(Array(10, 20, 30), 20), 1, "Array_IndexOf: 命中"
+    Test_Equal mod_array.Array_IndexOf(Array(10, 20, 30), 99), -1, "Array_IndexOf: 未找到=-1"
+    Test_Equal mod_array.Array_IndexOf(Array(10, 20, 20, 30), 20, 2), 2, "Array_IndexOf: 从 start 起"
+    Dim rem1 As Variant
+    rem1 = mod_array.Array_Remove(Array(1, 2, 2, 3), 2)
+    Test_True mod_array.Array_Contains(rem1, 2), "Array_Remove: 仅删首个"
+    Test_Equal canon(rem1), "1,2,3", "Array_Remove: 结果"
+    rem1 = mod_array.Array_Remove(Array(1, 2, 3), 99)
+    Test_Equal canon(rem1), "1,2,3", "Array_Remove: 未命中保持原样"
+    rem1 = mod_array.Array_RemoveAt(Array(10, 20, 30), 1)
+    Test_Equal canon(rem1), "10,30", "Array_RemoveAt: 按索引删"
+    rem1 = mod_array.Array_RemoveAt(Array(10), 0)
+    Test_False mod_array.Array_Contains(rem1, 10), "Array_RemoveAt: 单元素清空"
+    rem1 = mod_array.Array_RemoveAt(Array(10, 20), 5)
+    Test_Equal canon(rem1), "10,20", "Array_RemoveAt: 越界保持原样"
 End Sub
 
 Private Sub suite_string()
@@ -137,6 +153,14 @@ Private Sub suite_string()
     Test_Equal mod_string.String_Join(Array("a", "b", "c"), "-"), "a-b-c", "String_Join"
     Test_True (Len(mod_string.String_Random(12)) = 12), "String_Random: 长度"
     Test_True mod_regex.Regex_Test("^[A-Za-z0-9]+$", mod_string.String_Random(20)), "String_Random: 字符集"
+
+    Test_True mod_string.String_StartsWith("hello world", "hello"), "StartsWith"
+    Test_False mod_string.String_StartsWith("hello", "helloo"), "StartsWith: 前缀更长"
+    Test_True mod_string.String_EndsWith("hello world", "world"), "EndsWith"
+    Test_False mod_string.String_EndsWith("hello", "llo!"), "EndsWith: 后缀更长"
+    Test_Equal mod_string.String_LeftPad("7", 3, "0"), "007", "LeftPad: 指定填充"
+    Test_Equal mod_string.String_LeftPad("ab", 4), "  ab", "LeftPad: 默认空格"
+    Test_Equal mod_string.String_LeftPad("abc", 2), "abc", "LeftPad: 原长>=目标不变"
 End Sub
 
 Private Sub suite_regex()
@@ -200,6 +224,18 @@ Private Sub suite_dict()
     Test_False mod_dict.Dict_Exists(d, "b"), "Dict_Remove: 移除后不存在"
     mod_dict.Dict_Clear d
     Test_Equal CStr(mod_dict.Dict_Count(d)), "0", "Dict_Clear"
+
+    Dim pairs(1 To 2, 1 To 2) As Variant
+    pairs(1, 1) = "a": pairs(1, 2) = 1
+    pairs(2, 1) = "b": pairs(2, 2) = 2
+    Set d = mod_dict.Dict_FromArray(pairs)
+    Test_Equal CStr(mod_dict.Dict_Count(d)), "2", "Dict_FromArray: 条数"
+    Test_True mod_dict.Dict_Exists(d, "a"), "Dict_FromArray: 有键 a"
+    Test_Equal CStr(mod_dict.Dict_Get(d, "b")), "2", "Dict_FromArray: 取值 b"
+    ' 往返：To_Array -> FromArray 应还原
+    Set d = mod_dict.Dict_FromArray(mod_dict.Dict_To_Array(d))
+    Test_Equal CStr(mod_dict.Dict_Get(d, "a")), "1", "Dict 往返(ToArray->FromArray) 取值 a"
+    Test_False mod_dict.Dict_Exists(d, "zz"), "Dict 往返: 无多余键"
 End Sub
 
 Private Sub suite_sort()

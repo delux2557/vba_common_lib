@@ -9,6 +9,9 @@ Attribute VB_Name = "mod_string"
 '   String_LTrim(s[, chars])           As String    去开头
 '   String_RTrim(s[, chars])           As String    去结尾
 '   String_Random(len[, char_set])     As String    随机字符串
+'   String_StartsWith(s, prefix)       As Boolean   是否以 prefix 开头
+'   String_EndsWith(s, suffix)         As Boolean   是否以 suffix 结尾
+'   String_LeftPad(s, len[, pad_char]) As String    左填充到指定长度
 '=====================================================================
 Option Explicit
 
@@ -81,6 +84,24 @@ Public Function String_Random(ByVal str_len As Long, Optional ByVal char_set As 
         sb = sb & Mid$(pool, Int(Len(pool) * Rnd) + 1, 1)
     Next i
     String_Random = sb
+End Function
+
+Public Function String_StartsWith(ByVal s As String, ByVal prefix As String) As Boolean
+    String_StartsWith = (Left$(s, Len(prefix)) = prefix)
+End Function
+
+Public Function String_EndsWith(ByVal s As String, ByVal suffix As String) As Boolean
+    String_EndsWith = (Right$(s, Len(suffix)) = suffix)
+End Function
+
+Public Function String_LeftPad(ByVal s As String, ByVal total_len As Long, _
+                               Optional ByVal pad_char As String = " ") As String
+    If Len(s) >= total_len Then
+        String_LeftPad = s
+        Exit Function
+    End If
+    If Len(pad_char) < 1 Then pad_char = " "
+    String_LeftPad = String$(total_len - Len(s), Left$(pad_char, 1)) & s
 End Function
 
 ' 默认去空格的字符集：空格 / 制表 / 回车 / 换行
