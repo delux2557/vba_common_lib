@@ -13,6 +13,7 @@ Attribute VB_Name = "mod_sort"
 '=====================================================================
 Option Explicit
 
+' 返回反转后的新数组（0 基）。非数组 / 空数组返回 Array()。
 Public Function Array_Reverse(ByRef arr As Variant) As Variant
     Dim n As Long
     Dim i As Long
@@ -33,6 +34,8 @@ Public Function Array_Reverse(ByRef arr As Variant) As Variant
     Array_Reverse = new_arr
 End Function
 
+' 稳定排序（返回新数组，不动入参）。ascending=True 升序；key_func 可选，
+' 经 Application.Run 对每元素算排序键（如取结构某列/属性），缺省按元素本身排序。
 Public Function Array_Sort(ByRef arr As Variant, Optional ByVal ascending As Boolean = True, _
                            Optional ByVal key_func As String = vbNullString) As Variant
     Dim n As Long
@@ -97,6 +100,9 @@ Private Function arr_0based(ByRef arr As Variant) As Variant
     arr_0based = c
 End Function
 
+' 归并排序：对被排序的"下标排列 idx"而非元素值本身排序。
+' 好处：① 相等元素中先出现的下标必先被取出，天然稳定；② 每次只搬 Long 索引列，
+' 免去大数组反复搬动 Variant 的开销。tmp 为合并工作区。
 Private Sub MergeSort(ByRef keys() As Variant, ByRef idx() As Long, ByRef tmp() As Long, _
                       ByVal lo As Long, ByVal hi As Long, ByVal ascending As Boolean)
     Dim mid As Long

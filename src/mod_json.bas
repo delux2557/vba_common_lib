@@ -19,6 +19,8 @@ Attribute VB_Name = "mod_json"
 Option Explicit
 
 '--- 对外 API --------------------------------------------------------
+' 解析 JSON 字符串为嵌套结构（数据模型见头部）。非法输入抛错 #45000，Description 含出错位置。
+' 注意：对象解析为 Dictionary，承接结果须用 Set（见下方#450 说明）。
 Public Function JSON_Parse(ByVal json_text As String) As Variant
     Dim pos As Long
     pos = 1
@@ -35,6 +37,8 @@ Public Function JSON_Parse(ByVal json_text As String) As Variant
     End If
 End Function
 
+' 把结构化数据序列化为 JSON：对象=Dictionary、数组=数组、数字/字符串/布尔按类型直出。
+' 顶级 null/未知类型输出 "null"。
 Public Function JSON_Stringify(ByVal value As Variant) As String
     JSON_Stringify = ser(value)
 End Function

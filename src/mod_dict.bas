@@ -2,6 +2,9 @@ Attribute VB_Name = "mod_dict"
 '=====================================================================
 ' mod_dict - 字典 通用工具（通用库 · v1.1）
 '=====================================================================
+' 职责：封装 Scripting.Dictionary 常用操作，并统一"空字典/空输入"的行为
+'       （键数组返回 Array()、Count=0、Exists=False），避免调用方每次判空。
+'
 ' 目录 / Catalog
 '   Dict_Create()                     As Object  新建字典(晚绑定 Scripting.Dictionary)
 '   Dict_Set(dict, key, val)                    写入/覆盖键值
@@ -18,15 +21,18 @@ Attribute VB_Name = "mod_dict"
 '=====================================================================
 Option Explicit
 
+' 新建空字典（晚绑定 Scripting.Dictionary）。几乎总是配 Dict_Set 使用。
 Public Function Dict_Create() As Object
     Set Dict_Create = CreateObject("Scripting.Dictionary")
 End Function
 
+' 写入/覆盖键值。实现为"先删后增"：既覆盖值，又把该键移到末尾（接近多数使用直觉）。
 Public Sub Dict_Set(ByRef dict As Object, ByVal key As Variant, ByVal val As Variant)
     If dict.Exists(key) Then dict.Remove key
     dict.Add key, val
 End Sub
 
+' 读值；键不存在（或字典为 Nothing）时返回 default（缺省空串）。
 Public Function Dict_Get(ByRef dict As Object, ByVal key As Variant, Optional ByVal default As Variant = vbNullString) As Variant
     If dict Is Nothing Or Not dict.Exists(key) Then
         Dict_Get = default
@@ -35,10 +41,12 @@ Public Function Dict_Get(ByRef dict As Object, ByVal key As Variant, Optional By
     End If
 End Function
 
+' 键是否存在；字典为 Nothing 也返回 False（安全）。
 Public Function Dict_Exists(ByRef dict As Object, ByVal key As Variant) As Boolean
     Dict_Exists = (Not dict Is Nothing) And dict.Exists(key)
 End Function
 
+' 键数量；字典为 Nothing 返回 0。
 Public Function Dict_Count(ByRef dict As Object) As Long
     If dict Is Nothing Then
         Dict_Count = 0
@@ -47,6 +55,7 @@ Public Function Dict_Count(ByRef dict As Object) As Long
     End If
 End Function
 
+' 全部键的 0 基数组（保持插入顺序）；空/空字典返回 Array()。
 Public Function Dict_Keys(ByRef dict As Object) As Variant
     Dim k As Variant
     Dim n As Long
@@ -69,6 +78,7 @@ Public Function Dict_Keys(ByRef dict As Object) As Variant
     Dict_Keys = arr
 End Function
 
+' 全部值的 0 基数组（顺序与 Dict_Keys 对应）；空/空字典返回 Array()。
 Public Function Dict_Values(ByRef dict As Object) As Variant
     Dim k As Variant
     Dim n As Long
@@ -112,6 +122,7 @@ Public Function Dict_To_Array(ByRef dict As Object) As Variant
     Dict_To_Array = arr
 End Function
 
+' 由二维数组还原为字典（每行两列=键、值）；Dict_ToArray 的逆。行下标任意，按序 Add。
 Public Function Dict_FromArray(ByRef pairs As Variant) As Object
     Dim d As Object
     Dim r As Long, r0 As Long, r1 As Long
@@ -125,12 +136,14 @@ Public Function Dict_FromArray(ByRef pairs As Variant) As Object
     Set Dict_FromArray = d
 End Function
 
+' 移除某键；键不存在或字典为 Nothing 时静默忽略。
 Public Sub Dict_Remove(ByRef dict As Object, ByVal key As Variant)
     If Not dict Is Nothing Then
         If dict.Exists(key) Then dict.Remove key
     End If
 End Sub
 
+' 清空全部键值；字典为 Nothing 时静默忽略。
 Public Sub Dict_Clear(ByRef dict As Object)
     If Not dict Is Nothing Then dict.RemoveAll
 End Sub

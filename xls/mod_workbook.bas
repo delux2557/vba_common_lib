@@ -2,6 +2,9 @@ Attribute VB_Name = "mod_workbook"
 '=====================================================================
 ' mod_workbook - 工作簿 / 工作表 通用工具（通用库 · v1.0）
 '=====================================================================
+' 职责：Excel 工作簿/工作表查询与安全备份。依赖 Excel 宿主，归入 xls/ 绑定层。
+' 约定：wb Is Nothing 一律安全返回（False / Array()），不抛错。
+'
 ' 目录 / Catalog
 '   Sheet_Exists(sheet_name, wb)          As Boolean   工作表是否存在于指定工作簿
 '   Workbook_Exists(wbname[, fmt])        As Boolean   工作簿是否已打开(按名,忽略大小写)
@@ -11,6 +14,7 @@ Attribute VB_Name = "mod_workbook"
 '=====================================================================
 Option Explicit
 
+' 指定工作簿里是否存在名为 sheet_name 的工作表。
 Public Function Sheet_Exists(ByVal sheet_name As String, ByRef wb As Workbook) As Boolean
     Dim sh As Variant
     Sheet_Exists = False
@@ -23,6 +27,7 @@ Public Function Sheet_Exists(ByVal sheet_name As String, ByRef wb As Workbook) A
     Next sh
 End Function
 
+' 按名称判断工作簿是否已打开；可传带/不带扩展名（fmt 默认 xlsx），忽略大小写。
 Public Function Workbook_Exists(ByVal wb_name As String, Optional ByVal fmt As String = "xlsx") As Boolean
     Dim wb As Workbook
     Workbook_Exists = False
@@ -34,6 +39,7 @@ Public Function Workbook_Exists(ByVal wb_name As String, Optional ByVal fmt As S
     Next wb
 End Function
 
+' 列出指定工作簿的全部工作表名（0 基数组）；wb 为空返回 Array()。
 Public Function Workbook_SheetNames(ByRef wb As Workbook) As Variant
     Dim col As New Collection
     Dim sh As Variant
@@ -47,6 +53,7 @@ Public Function Workbook_SheetNames(ByRef wb As Workbook) As Variant
     Workbook_SheetNames = mod_array.Collection_To_Array(col)
 End Function
 
+' 列出所有打开工作簿的全部工作表名，格式 "工作簿名!工作表名"。
 Public Function Workbook_AllSheetNames() As Variant
     Dim wb As Workbook
     Dim col As New Collection

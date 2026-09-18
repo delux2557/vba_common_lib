@@ -2,6 +2,8 @@ Attribute VB_Name = "mod_ui"
 '=====================================================================
 ' mod_ui - Excel 交互对话框 通用工具（Excel 绑定层 · v1.0）
 '=====================================================================
+' 职责：封装文件/文件夹选择对话框。取消时返回空串。
+'
 ' 目录 / Catalog
 '   File_Pick([title, desc, pattern])  As String    对话框选文件
 '   Folder_Pick([title])              As String    对话框选文件夹
@@ -10,6 +12,7 @@ Attribute VB_Name = "mod_ui"
 '=====================================================================
 Option Explicit
 
+' 弹文件选择框（单选），返回所选文件全路径；取消返回空串。可用 filter_desc/pattern 限定类型。
 Public Function File_Pick(Optional ByVal title As String = "选择文件", _
                           Optional ByVal filter_desc As String = "所有文件", _
                           Optional ByVal filter_pattern As String = "*.*") As String
@@ -25,6 +28,7 @@ Public Function File_Pick(Optional ByVal title As String = "选择文件", _
     Set dlg = Nothing
 End Function
 
+' 弹文件夹选择框，返回所选文件夹全路径；取消返回空串。
 Public Function Folder_Pick(Optional ByVal title As String = "选择文件夹") As String
     Dim dlg As FileDialog
     Set dlg = Application.FileDialog(msoFileDialogFolderPicker)

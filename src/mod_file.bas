@@ -2,6 +2,9 @@ Attribute VB_Name = "mod_file"
 '=====================================================================
 ' mod_file - 文件 / 文件夹 通用工具（通用库 · v1.0）
 '=====================================================================
+' 职责：封装 FileSystemObject 的文件/文件夹操作与路径解析。
+' 依赖：FSO 晚绑定(Get_FSO 惰性单例)，无需勾选引用；文件写入默认 UTF-16，注意见 File_Write。
+'
 ' 目录 / Catalog
 '   File_Exists(path)                   As Boolean   文件是否存在
 '   Folder_Exists(path)                 As Boolean   文件夹是否存在
@@ -16,20 +19,24 @@ Attribute VB_Name = "mod_file"
 '=====================================================================
 Option Explicit
 
+' FSO 惰性单例：首次用时才创建，此后复用，避免每次调用新开销。
 Private Function Get_FSO() As Object
     Static fso As Object
     If fso Is Nothing Then Set fso = CreateObject("Scripting.FileSystemObject")
     Set Get_FSO = fso
 End Function
 
+' 文件是否存在。
 Public Function File_Exists(ByVal file_path As String) As Boolean
     File_Exists = Get_FSO().FileExists(file_path)
 End Function
 
+' 文件夹是否存在。
 Public Function Folder_Exists(ByVal folder_path As String) As Boolean
     Folder_Exists = Get_FSO().FolderExists(folder_path)
 End Function
 
+' 确保文件夹存在（不存在则创建），并返回该路径；适合"写文件前先建目录"。
 Public Function Folder_Ensure(ByVal folder_path As String) As String
     Dim fso As Object
     Set fso = Get_FSO()
@@ -37,6 +44,7 @@ Public Function Folder_Ensure(ByVal folder_path As String) As String
     Folder_Ensure = folder_path
 End Function
 
+' 复制文件；目标已存在时按 overwrite 决定是否覆盖（默认覆盖）。
 Public Sub File_Copy(ByVal from_path As String, ByVal to_path As String, Optional ByVal overwrite As Boolean = True)
     Get_FSO().CopyFile from_path, to_path, overwrite
 End Sub
@@ -59,10 +67,12 @@ Public Sub File_Write(ByVal file_path As String, ByVal text As String, _
     tf.Close
 End Sub
 
+' 取路径中的文件名（含扩展名）；不能解析时抛错，路径请用完整格式。
 Public Function File_Name(ByVal file_path As String) As String
     File_Name = Get_FSO().GetFileName(file_path)
 End Function
 
+' 取文件名（不含扩展名）；无扩展名则返回原名。
 Public Function File_BaseName(ByVal file_path As String) As String
     Dim n As String
     Dim dot As Long
@@ -75,6 +85,7 @@ Public Function File_BaseName(ByVal file_path As String) As String
     End If
 End Function
 
+' 取扩展名（不含点）；无扩展名返回空串。
 Public Function File_ExtName(ByVal file_path As String) As String
     Dim n As String
     Dim dot As Long
@@ -87,6 +98,7 @@ Public Function File_ExtName(ByVal file_path As String) As String
     End If
 End Function
 
+' 文件名是否合法（不含 \ / : * ? " < > | 等非法字符，且非空）。
 Public Function File_Name_Valid(ByVal name As String) As Boolean
     Dim i As Long
     Dim ch As String
@@ -104,6 +116,7 @@ Public Function File_Name_Valid(ByVal name As String) As Boolean
     File_Name_Valid = True
 End Function
 
+' 列出文件夹内所有文件的全路径数组；recursive=True 时递归子文件夹。无文件返回 Array()。
 Public Function Folder_ListFiles(ByVal folder_path As String, Optional ByVal recursive As Boolean = False) As Variant
     Dim col As Collection
     Dim fso As Object

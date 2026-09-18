@@ -5,6 +5,11 @@ Attribute VB_Name = "mod_array"
 ' 命名体系：公共 API 使用 PascalCase + 域名前缀（Array_* / Collection_*），
 '           内部过程与局部变量使用 snake_case（Python 风格）。
 '
+' 职责：对 Variant 数组与 Collection 提供通用操作。全库统一约定——
+'   · 入参 0 基 / 1 基数组均可，函数自动适配，返回一律 0 基。
+'   · 空输入一律返回 Array()，谓词对空输入返回 False，绝不抛错（不吞错）。
+'   · 高阶函数（Map/Filter/All/Any）的回调传"宿主可调用的函数名"，走 Application.Run。
+'
 ' 目录 / Catalog（新函数加入时在此登记）
 '   Array_Contains(bytes as Variant 数组, val)         As Boolean   数组是否包含某元素
 '   Array_Append(arr, elem)                            As Variant   尾部追加一个元素
@@ -22,6 +27,7 @@ Attribute VB_Name = "mod_array"
 '=====================================================================
 Option Explicit
 
+' 数组是否已含 val（逐元素相等比较）。空数组返回 False。
 Public Function Array_Contains(ByRef arr As Variant, ByVal val As Variant) As Boolean
     Dim elem As Variant
     For Each elem In arr
@@ -33,10 +39,12 @@ Public Function Array_Contains(ByRef arr As Variant, ByVal val As Variant) As Bo
     Array_Contains = False
 End Function
 
+' 返回把 elem 追加到 arr 尾部的新数组；arr 可为空（结果为 [elem]）。
 Public Function Array_Append(ByRef arr As Variant, ByVal elem As Variant) As Variant
     Array_Append = Array_Extend(arr, Array(elem))
 End Function
 
+' 返回按顺序拼接 arr1 + arr2 的新数组；任一可为空。
 Public Function Array_Extend(ByRef arr1 As Variant, ByRef arr2 As Variant) As Variant
     Dim result() As Variant
     Dim i As Long, j As Long
@@ -62,6 +70,8 @@ Public Function Array_Extend(ByRef arr1 As Variant, ByRef arr2 As Variant) As Va
     Array_Extend = result
 End Function
 
+' 去重并保持首次出现顺序。原理：以数组元素为键写入 Dictionary，键天然唯一。
+' 依赖 Scripting.Dictionary（晚绑定，无需手动勾选引用）。
 Public Function Array_Distinct(ByRef arr As Variant) As Variant
     Dim dict As Object
     Dim i As Long, idx As Long
@@ -88,6 +98,8 @@ Public Function Array_Distinct(ByRef arr As Variant) As Variant
 End Function
 
 '--- 索引 / 删除 ------------------------------------------------------
+' 返回首个等于 val 的下标（相对首元素，0 基）；未找到返回 -1。
+' start_index 表示从第几个相对元素开始找（0 起算）。
 Public Function Array_IndexOf(ByRef arr As Variant, ByVal val As Variant, _
                               Optional ByVal start_index As Long = 0) As Long
     Dim i As Long
@@ -102,6 +114,7 @@ Public Function Array_IndexOf(ByRef arr As Variant, ByVal val As Variant, _
     Array_IndexOf = -1
 End Function
 
+' 返回删除首个等于 val 的元素后的数组；val 不存在时返回原数组（等价于"没有改动"）。
 Public Function Array_Remove(ByRef arr As Variant, ByVal val As Variant) As Variant
     Dim idx As Long
     idx = Array_IndexOf(arr, val)
@@ -112,6 +125,7 @@ Public Function Array_Remove(ByRef arr As Variant, ByVal val As Variant) As Vari
     Array_Remove = Array_RemoveAt(arr, idx)
 End Function
 
+' 返回删除下标 idx（0 基）后的数组。边界处理：越界返回原数组；单元素数组清空为 Array()。
 Public Function Array_RemoveAt(ByRef arr As Variant, ByVal idx As Long) As Variant
     Dim i As Long, j As Long, n As Long
     Dim result() As Variant
@@ -139,8 +153,8 @@ Public Function Array_RemoveAt(ByRef arr As Variant, ByVal idx As Long) As Varia
 End Function
 
 '--- 高阶函数 ---------------------------------------------------------
-' 回调 func_name 必须是宿主中可被 Application.Run 调用的过程/函数名。
-' 原版用 On Error Resume Next 吞错；这里去掉以便尽早暴露回调错误。
+' 高阶：逐元素调用 func_name(elem)，收集返回值成新数组（元素类型由回调决定）。
+' 注意：回调需宿主可达（Application.Run），且每元素只传入一个参数。
 Public Function Array_Map(ByRef arr As Variant, ByVal func_name As String) As Variant
     Dim result() As Variant
     Dim elem As Variant
@@ -158,6 +172,7 @@ Public Function Array_Map(ByRef arr As Variant, ByVal func_name As String) As Va
     Array_Map = result
 End Function
 
+' 高阶：保留满足 func_name(elem)=True 的元素（回调视为谓词）。
 Public Function Array_Filter(ByRef arr As Variant, ByVal func_name As String) As Variant
     Dim ret As Collection
     Dim elem As Variant
@@ -174,6 +189,7 @@ Public Function Array_Filter(ByRef arr As Variant, ByVal func_name As String) As
     Array_Filter = Collection_To_Array(ret)
 End Function
 
+' 高阶 every：是否所有元素都使谓词为 True。短路返回（遇到首个 False 即停）。
 Public Function Array_All(ByRef arr As Variant, ByVal func_name As String) As Boolean
     Dim elem As Variant
     For Each elem In arr
@@ -185,6 +201,7 @@ Public Function Array_All(ByRef arr As Variant, ByVal func_name As String) As Bo
     Array_All = True
 End Function
 
+' 高阶 some：是否存在至少一个元素使谓词为 True。空数组返回 False。
 Public Function Array_Any(ByRef arr As Variant, ByVal func_name As String) As Boolean
     Dim elem As Variant
     For Each elem In arr
@@ -196,6 +213,7 @@ Public Function Array_Any(ByRef arr As Variant, ByVal func_name As String) As Bo
     Array_Any = False
 End Function
 
+' Collection -> 0 基 Variant 数组。空集合返回 Array()。
 Public Function Collection_To_Array(ByRef col As Collection) As Variant
     Dim i As Long
     Dim arr() As Variant
@@ -210,6 +228,7 @@ Public Function Collection_To_Array(ByRef col As Collection) As Variant
     Collection_To_Array = arr
 End Function
 
+' 数组 -> Collection。为元素加 1 起始的 String 键（key 必须为非负数形式，Direction 用 CStr 规避）。
 Public Function Array_To_Collection(ByRef arr As Variant) As Collection
     Dim elem As Variant
     Dim clc As New Collection
