@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# pre-push 静态门禁：契约检查(lint) + 工具脚本 py_compile。任一失败即拒绝推送。
+# 被 tools/install_hooks.py 复制到 .git/hooks/pre-push。可用环境变量 VBA_LIB_PY 指定 python。
+set -u
+
+PY="${VBA_LIB_PY:-}"
+if [ -z "$PY" ]; then
+  for c in python python3; do
+    if command -v "$c" >/dev/null 2>&1; then PY="$c"; break; fi
+  done
+fi
+if [ -z "$PY" ]; then
+  echo "[pre-push] 未找到 python，跳过本门禁（请安装 Python 或设 VBA_LIB_PY）"
+  exit 0
+fi
+
+REPO="$(git rev-parse --show-toplevel)"
+
+# 若解释器是 Windows 二进制(python.exe)，把 /mnt/... 转成 G:\... 供其解析
+wpath() {
+  case "$PY" in
+    *.exe|*.EXE) wslpath -w "$1" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+LINT="$(wpath "$REPO/tools/vba_check_lint.py")"
+fail=0
+
+echo "[pre-push] 契约检查 src/ + xls/ ..."
+"$PY" "$LINT" --src "$(wpath "$REPO/src")" --src "$(wpath "$REPO/xls")" || fail=1
+
+echo "[pre-push] 工具脚本 py_compile ..."
+for f in "$REPO"/tools/build_* "$REPO"/tools/install_* "$REPO"/tools/run_* \
+         "$REPO"/tools/vba_* "$REPO"/tools/verify_* ; do
+  [ -f "$f" ] || continue
+  [ "${f##*.}" = "py" ] || continue
+  "$PY" -m py_compile "$(wpath "$f")" || fail=1
+done
+
+if [ "$fail" -eq 0 ]; then
+  echo "[pre-push] 门禁通过"
+  exit 0
+fi
+echo "[pre-push] 门禁失败：请修复后重试"
+exit 1

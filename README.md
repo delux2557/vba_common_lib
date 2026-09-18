@@ -158,6 +158,14 @@ python tools/run_tests.py --src src --src xls --entry mod_tests_excel --build bu
 ```bash
 python tools/vba_check_lint.py --src src --src xls
 ```
+退出码 = 问题数（ERROR 计 2 / WARN 计 1）；`0` 全部通过。
+
+### 1c. pre-push 静态门禁（可选安装）
+```bash
+python tools/install_hooks.py   # 把 tools/hooks/pre-push 装入 .git/hooks/
+```
+此后每次 `git push` 自动先跑 lint + 工具脚本 `py_compile`，任一失败即拒绝推送；
+可用环境变量 `VBA_LIB_PY` 指定 python（默认探测 `python`/`python3`）。
 
 ### 2. 一键同步到某个工作簿
 ```bash
