@@ -78,6 +78,7 @@ Public Function Run_All_Tests(Optional ByVal report_path As String = vbNullStrin
     run_protected "suite_dict"
     run_protected "suite_sort"
     run_protected "suite_json"
+    run_protected "suite_debug"
     run_protected "suite_version"
     log_line "===== 结束：通过 " & p_pass & " / 失败 " & p_fail & " ====="
     If Len(report_path) > 0 Then mod_file.File_Write report_path, p_report, False, True
@@ -97,6 +98,7 @@ Private Sub run_protected(ByVal suite As String)
         Case "suite_dict":     suite_dict
         Case "suite_sort":     suite_sort
         Case "suite_json":     suite_json
+        Case "suite_debug":    suite_debug
         Case "suite_version":  suite_version
     End Select
     Exit Sub
@@ -311,6 +313,15 @@ Private Sub suite_json()
     Test_Equal mod_json.JSON_Stringify(Array(1, "x", True, Null)), "[1,""x"",true,null]", "JSON_Stringify 数组"
     Test_Equal mod_json.JSON_Stringify(Null), "null", "JSON_Stringify: null"
 
+    ' 美化输出（缩进换行，仍可再解析还原）
+    Dim pretty_out As String
+    pretty_out = mod_json.JSON_Stringify(round, True)
+    Test_True (InStr(1, pretty_out, vbLf) > 0), "JSON_Stringify: pretty 含换行"
+    Test_True (InStr(1, pretty_out, "  ") > 0), "JSON_Stringify: pretty 含缩进"
+    Dim round2 As Variant
+    Set round2 = mod_json.JSON_Parse(pretty_out)
+    Test_Equal mod_json.JSON_Stringify(round2), "{""a"":1,""b"":[2,3]}", "JSON pretty 往返还原"
+
     ' 非法输入应抛错
     caught = False
     On Error Resume Next
@@ -320,6 +331,51 @@ Private Sub suite_json()
     Err.Clear
     On Error GoTo 0
     Test_True caught, "JSON_Parse: 非法输入抛错"
+End Sub
+
+Private Sub suite_debug()
+    log_line "--- mod_debug ---"
+    mod_debug.Log_SetLevel "warn"
+    Test_Equal mod_debug.Log_GetLevel(), "warn", "Log_SetLevel/Log_GetLevel"
+
+    ' 非法级别应抛错
+    Dim caught As Boolean
+    caught = False
+    On Error Resume Next
+    mod_debug.Log_SetLevel "verbose"
+    If Err.Number <> 0 Then caught = True
+    Err.Clear
+    On Error GoTo 0
+    Test_True caught, "Log_SetLevel: 非法级别抛错"
+
+    ' 日志落盘 + 级别过滤（消息用 ASCII，规避编码差异）
+    Dim tmp As String
+    tmp = test_tmp_dir()
+    Dim log_path As String
+    log_path = tmp & "\app.log"
+    mod_debug.Log_SetLevel "info"
+    mod_debug.Log_SetFile log_path
+    mod_debug.Log_Info "hello world"
+    mod_debug.Log_Error "boom"
+    mod_debug.Log_Debug "hidden"
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Dim txt As String
+    txt = fso.OpenTextFile(log_path, 1, False, -1).ReadAll   ' 强制按 Unicode 读
+    Set fso = Nothing
+    Test_True (InStr(1, txt, "hello world", vbTextCompare) > 0), "Log_Info: 落盘"
+    Test_True (InStr(1, txt, "boom", vbTextCompare) > 0), "Log_Error: 落盘"
+    Test_True (InStr(1, txt, "[INFO]", vbTextCompare) > 0), "Log: 级别标签"
+    Test_True (Mid$(txt, 1, 1) = "["), "Log: 时间戳前缀"
+    Test_True (InStr(1, txt, "hidden", vbTextCompare) = 0), "Log_Debug: 低于级别被过滤"
+
+    ' 清理
+    mod_debug.Log_SetFile ""
+    Dim fso2 As Object
+    Set fso2 = CreateObject("Scripting.FileSystemObject")
+    If fso2.FolderExists(tmp) Then fso2.DeleteFolder tmp
+    Set fso2 = Nothing
+    mod_debug.Log_SetLevel "debug"
 End Sub
 
 Private Sub suite_version()

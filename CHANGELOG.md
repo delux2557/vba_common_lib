@@ -8,6 +8,11 @@
 
 ## [Unreleased]
 
+### Added
+- `mod_debug` 新增运行期日志：`Log_Debug/Info/Warn/Error`（时间戳+级别+过滤）、`Log_SetLevel`、
+  `Log_GetLevel`、`Log_SetFile`（UTF-16 追加落盘，记事本可直接查看中文）；日志 IO 为"不吞错"原则的明确例外
+- `JSON_Stringify` 支持美化输出：`pretty=True` 缩进换行（`indent` 控制空格），输出仍为合法 JSON 可再解析
+
 ### Fixed
 - `JSON_Parse` 大整数（超出 Long 范围 2^31-1）不再抛 VBA 溢出错误：解析用 Decimal 承接，
   序列化对 Decimal 直出完整数字，大整数往返不丢精度

@@ -79,7 +79,9 @@ vba_common_lib/
 `Folder_ListFiles`（可递归）
 
 ### 调试输出 `mod_debug`
-`Show_Arr_Members`（维度）/ `Print_Array` / `Print_Clc` / `Print_Dict` / `Print_Lines`
+开发期打印：`Show_Arr_Members`（维度）/ `Print_Array` / `Print_Clc` / `Print_Dict` / `Print_Lines`
+运行期日志：`Log_Debug` / `Log_Info` / `Log_Warn` / `Log_Error`（时间戳+级别，级别过滤，
+可落盘 UTF-16 文件）`/ Log_SetLevel`（"debug"<"info"<"warn"<"error"）`/ Log_SetFile`（空串关闭）
 
 ### 字典封装 `mod_dict`（晚绑定）
 `Dict_Create` / `Dict_Set` / `Dict_Get`（可带默认值）/ `Dict_Exists` / `Dict_Count`
@@ -90,7 +92,8 @@ vba_common_lib/
 `Array_Sort`（稳定归并，可选键回调，返回新数组）/ `Array_Reverse`
 
 ### JSON `mod_json`（纯手写递归下降）
-`JSON_Parse`（对象→`Dictionary`，数组→0 基数组）/ `JSON_Stringify`（序列化）
+`JSON_Parse`（对象→`Dictionary`，数组→0 基数组）/ `JSON_Stringify`（序列化；`pretty=True` 缩进换行，
+`indent` 控制缩进，输出仍为合法 JSON 可再解析）
 > **注意**：`JSON_Parse` 返回对象时须用 `Set` 承接（`Set o = mod_json.JSON_Parse(...)`）；
 > 字典有带参默认属性 `.Item`，用 `=` 会触发 `#450`。
 

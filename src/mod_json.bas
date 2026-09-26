@@ -4,7 +4,8 @@ Attribute VB_Name = "mod_json"
 '=====================================================================
 ' 目录 / Catalog
 '   JSON_Parse(json_text)    As Variant    解析 JSON 字符串为嵌套结构
-'   JSON_Stringify(value)    As String     把结构化数据序列化为 JSON 字符串
+'   JSON_Stringify(value[, pretty[, indent]]) As String  序列化为 JSON 字符串
+'       pretty=True 时缩进换行输出（仍为合法 JSON，可再解析）；indent 为缩进空格数
 '=====================================================================
 ' 数据模型映射：
 '   JSON 对象  -> Scripting.Dictionary（晚绑定，键保持插入顺序）
@@ -38,9 +39,15 @@ Public Function JSON_Parse(ByVal json_text As String) As Variant
 End Function
 
 ' 把结构化数据序列化为 JSON：对象=Dictionary、数组=数组、数字/字符串/布尔按类型直出。
-' 顶级 null/未知类型输出 "null"。
-Public Function JSON_Stringify(ByVal value As Variant) As String
-    JSON_Stringify = ser(value)
+' 顶级 null/未知类型输出 "null"。pretty=True 时缩进换行（indent 控制空格数），输出仍合法。
+Public Function JSON_Stringify(ByVal value As Variant, _
+                               Optional ByVal pretty As Boolean = False, _
+                               Optional ByVal indent As Long = 2) As String
+    If pretty Then
+        JSON_Stringify = ser_pretty(value, 0, indent)
+    Else
+        JSON_Stringify = ser(value)
+    End If
 End Function
 
 '--- 解析器 ----------------------------------------------------------
@@ -246,6 +253,55 @@ Private Function ser(ByVal value As Variant) As Variant
             Case vbString:   ser = quote_string(CStr(value))
             Case Else:       ser = ser_number(value)
         End Select
+    End If
+End Function
+
+' 美化序列化：缩进 + 换行，输出仍为合法 JSON（可直接 JSON_Parse 还原）。
+Private Function ser_pretty(ByVal value As Variant, ByVal depth As Long, ByVal indent As Long) As String
+    Dim pad As String
+    Dim k As Variant
+    Dim i As Long
+    Dim lo As Long, hi As Long
+    Dim items() As String
+    Dim n As Long
+    pad = String$(indent * depth, " ")
+    If IsObject(value) Then
+        If TypeName(value) = "Dictionary" Then
+            If value.Count = 0 Then
+                ser_pretty = "{}"
+            Else
+                n = 0
+                ReDim items(0 To 0)
+                For Each k In value.keys
+                    If n > UBound(items) Then ReDim Preserve items(0 To n)
+                    items(n) = String$(indent * (depth + 1), " ") & quote_string(CStr(k)) & ": " & _
+                               ser_pretty(value(k), depth + 1, indent)
+                    n = n + 1
+                Next k
+                ReDim Preserve items(0 To n - 1)
+                ser_pretty = "{" & vbLf & Join(items, "," & vbLf) & vbLf & pad & "}"
+            End If
+        Else
+            ser_pretty = "null"
+        End If
+    ElseIf IsArray(value) Then
+        lo = LBound(value)
+        hi = UBound(value)
+        If hi < lo Then
+            ser_pretty = "[]"
+        Else
+            n = 0
+            ReDim items(0 To hi - lo)
+            For i = lo To hi
+                items(n) = String$(indent * (depth + 1), " ") & ser_pretty(value(i), depth + 1, indent)
+                n = n + 1
+            Next i
+            ser_pretty = "[" & vbLf & Join(items, "," & vbLf) & vbLf & pad & "]"
+        End If
+    ElseIf IsNull(value) Or IsEmpty(value) Then
+        ser_pretty = "null"
+    Else
+        ser_pretty = ser(value)
     End If
 End Function
 
