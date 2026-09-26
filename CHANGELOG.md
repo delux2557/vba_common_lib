@@ -6,7 +6,7 @@
 > **版本号唯一来源是 `src/VERSION`**（构建时自动生成 `mod_version` 注入运行期）。
 > CHANGELOG 仅在发版时登记版本号与变更内容，不承担"版本定义"职责，防止多来源漂移。
 
-## [Unreleased]
+## [1.1.0] - 2026-09-26
 
 ### Added
 - `mod_debug` 新增运行期日志：`Log_Debug/Info/Warn/Error`（时间戳+级别+过滤）、`Log_SetLevel`、
