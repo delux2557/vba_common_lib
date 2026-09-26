@@ -46,6 +46,10 @@ vba_common_lib/
 > **分层原则**：`src/` 只含不依赖 Excel 对象模型的纯 VBA，任何宿主都能编译运行，
 > 可单独打 xlam / 独立测试；`xls/` 绑定 `Range` / `Workbook` / `Application`，
 > 按需随纯层一起导入。`xls/` 可依赖 `src/`，反之不可。
+>
+> **回调例外**：`Array_Map` / `Array_Filter` / `Array_All` / `Array_Any` 与 `Array_Sort` 的
+> `key_func` 通过 `Application.Run` 调用回调函数名，依赖 Excel 宿主。本库面向 Excel 场景，
+> 属有意取舍；非 Excel 宿主请勿使用回调形态（普通形态不受影响）。
 
 ---
 
