@@ -85,4 +85,12 @@ Private Sub suite_range()
     Test_Equal mod_range.Range_Address(r), "$A$1", "Range_Address"
     Test_Equal mod_range.Range_ShiftAddress(r, 1, 0), "'" & r.Worksheet.Name & "'!A2", "Range_ShiftAddress 下移一行"
     Test_True (InStr(1, mod_range.Range_SheetAddress(r), "'" & r.Worksheet.Name & "'!") > 0), "Range_SheetAddress: 含工作表名"
+
+    ' Repr 的 Range 分支（纯层 Repr 分发到 Excel Range 类型）
+    Set r = ThisWorkbook.Sheets(1).Range("A1")
+    r.Value = "hello"
+    Test_Equal mod_debug.Repr(r), "Range(""A1"", Value=""hello"")", "Repr: Range(地址+值)"
+    Set r = ThisWorkbook.Sheets(1).Range("A1:B2")
+    r.Value = 5
+    Test_Equal mod_debug.Repr(r), "Range(""A1:B2"", Value=[[5, 5], [5, 5]])", "Repr: 多单元格 Range 值数组"
 End Sub

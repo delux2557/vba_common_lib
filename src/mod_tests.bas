@@ -415,6 +415,36 @@ Private Sub suite_debug()
     Test_True (Mid$(txt, 1, 1) = "["), "Log: 时间戳前缀"
     Test_True (InStr(1, txt, "hidden", vbTextCompare) = 0), "Log_Debug: 低于级别被过滤"
 
+    ' Repr 通用对象打印（Debug.Print 直接打对象会报错，Repr 按类型分发为字符串）
+    Test_Equal mod_debug.Repr("hi"), """hi""", "Repr: 字符串加引号"
+    Test_Equal mod_debug.Repr("a""b"), """a""""b""", "Repr: 字符串内部引号转义"
+    Test_Equal mod_debug.Repr(42), "42", "Repr: 数字"
+    Test_Equal mod_debug.Repr(True), "True", "Repr: 布尔"
+    Test_Equal mod_debug.Repr(Empty), "Empty", "Repr: Empty"
+    Test_Equal mod_debug.Repr(Null), "Null", "Repr: Null"
+    Test_Equal mod_debug.Repr(Nothing), "<Nothing>", "Repr: Nothing"
+    Test_Equal mod_debug.Repr(Array(1, "a", True)), "[1, ""a"", True]", "Repr: 一维数组"
+    Test_Equal mod_debug.Repr(Array()), "Array()", "Repr: 空数组"
+    Dim m2(1 To 2, 1 To 2) As Variant
+    m2(1, 1) = 1: m2(1, 2) = 2
+    m2(2, 1) = 3: m2(2, 2) = 4
+    Test_Equal mod_debug.Repr(m2), "[[1, 2], [3, 4]]", "Repr: 二维数组"
+    Dim m3(1 To 2, 1 To 3, 1 To 4) As Variant
+    Test_Equal mod_debug.Repr(m3), "Array<3D 2x3x4>", "Repr: 三维数组结构摘要"
+    Dim rclc As Collection
+    Set rclc = New Collection
+    rclc.Add "a"
+    rclc.Add 1
+    Test_Equal mod_debug.Repr(rclc), "Collection(""a"", 1)", "Repr: 集合"
+    Dim rd As Object
+    Set rd = mod_dict.Dict_Create()
+    mod_dict.Dict_Set rd, "a", 1
+    mod_dict.Dict_Set rd, "b", "x"
+    Test_Equal mod_debug.Repr(rd), "Dictionary(""a"": 1, ""b"": ""x"")", "Repr: 字典"
+    Set rclc = New Collection
+    rclc.Add rclc
+    Test_True (InStr(1, mod_debug.Repr(rclc, 3), "...") > 0), "Repr: 自引用深度截断"
+
     ' 清理
     mod_debug.Log_SetFile ""
     Dim fso2 As Object

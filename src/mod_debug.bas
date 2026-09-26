@@ -8,6 +8,8 @@ Attribute VB_Name = "mod_debug"
 '   Print_Clc(col)          打印集合元素
 '   Print_Dict(dict)        打印字典键值
 '   Print_Lines(lines)      逐行打印字符串数组
+'   Repr(obj[, max_depth])  通用对象字符串表示(Python 风格 repr：数组/集合/字典/Range/普通对象)
+'   Print_Repr(obj[, ...])  Debug.Print Repr 的便捷入口
 '   Log_Debug(msg)          开发级日志（含时间戳/级别）
 '   Log_Info(msg)           信息级日志
 '   Log_Warn(msg)           警告级日志
@@ -17,6 +19,9 @@ Attribute VB_Name = "mod_debug"
 '   Log_SetFile(path)       设置日志文件(UTF-16 追加，记事本可直接查看中文)；传空串关闭
 ' 说明：
 '   - Print_* 仅输出到 VBE 立即窗口(Debug.Print)，用于开发期排查。
+'   - Repr 返回任意值的字符串表示：Debug.Print 直接打印对象会抛错(#438 等)，
+'     Repr 按类型分发给出 Python 风格展示；标量字符串自动加引号并转义内部引号。
+'     深度默认 16 层，循环引用在深度处截断为 "..."，不会无限递归。
 '   - Log_* 面向运行期：级别过滤后同时输出到立即窗口与日志文件（可选）。
 '     级别由低到高 debug < info < warn < error，低于设定级别的不输出。
 '   - 日志 IO 为尽力而为的辅助设施：文件写入失败静默（On Error 流控），
@@ -84,6 +89,177 @@ Public Sub Print_Lines(ByRef lines As Variant)
         Debug.Print CStr(lines(i))
     Next i
 End Sub
+
+'--- 通用对象表示（Python 风格 repr） -----------------------------------
+
+Public Function Repr(obj As Variant, Optional ByVal max_depth As Long = 16) As String
+    If max_depth <= 0 Then
+        Repr = "..."
+        Exit Function
+    End If
+    If IsObject(obj) Then
+        If obj Is Nothing Then
+            Repr = "<Nothing>"
+        Else
+            Repr = repr_object(obj, max_depth)
+        End If
+    ElseIf IsArray(obj) Then
+        Repr = repr_array(obj, max_depth)
+    ElseIf IsEmpty(obj) Then
+        Repr = "Empty"
+    ElseIf IsNull(obj) Then
+        Repr = "Null"
+    ElseIf IsError(obj) Then
+        Repr = "Error(" & CStr(CLng(obj)) & ")"
+    ElseIf VarType(obj) = vbString Then
+        Repr = """" & Replace$(CStr(obj), """", """""") & """"
+    Else
+        Repr = CStr(obj)
+    End If
+End Function
+
+Public Sub Print_Repr(obj As Variant, Optional ByVal max_depth As Long = 16)
+    Debug.Print Repr(obj, max_depth)
+End Sub
+
+Private Function repr_object(ByVal obj As Object, ByVal depth As Long) As String
+    Dim tn As String
+    Dim s As String
+    tn = TypeName(obj)
+    Select Case tn
+        Case "Collection"
+            repr_object = "Collection(" & repr_collection(obj, depth) & ")"
+        Case "Dictionary"
+            repr_object = "Dictionary(" & repr_dictionary(obj, depth) & ")"
+        Case "Range"
+            repr_object = "Range(""" & obj.Address(False, False) & """, Value=" & _
+                          Repr(obj.Value, depth - 1) & ")"
+        Case Else
+            ' 有默认成员的对象按默认值展示（近似 Python 的 str()）；否则退化 <类型 at 地址>
+            On Error Resume Next
+            s = CStr(obj)
+            If Err.Number = 0 Then
+                On Error GoTo 0
+                repr_object = s
+            Else
+                On Error GoTo 0
+                repr_object = "<" & tn & " at 0x" & Hex$(ObjPtr(obj)) & ">"
+            End If
+    End Select
+End Function
+
+Private Function repr_collection(ByVal col As Collection, ByVal depth As Long) As String
+    Dim it As Variant
+    Dim parts() As String
+    Dim n As Long
+    If col.Count = 0 Then
+        repr_collection = ""
+        Exit Function
+    End If
+    ReDim parts(0 To col.Count - 1)
+    n = 0
+    For Each it In col
+        parts(n) = Repr(it, depth - 1)
+        n = n + 1
+    Next it
+    repr_collection = Join(parts, ", ")
+End Function
+
+Private Function repr_dictionary(ByVal d As Object, ByVal depth As Long) As String
+    Dim k As Variant
+    Dim parts() As String
+    Dim n As Long
+    If d.Count = 0 Then
+        repr_dictionary = ""
+        Exit Function
+    End If
+    ReDim parts(0 To d.Count - 1)
+    n = 0
+    For Each k In d.Keys
+        parts(n) = Repr(k, depth - 1) & ": " & Repr(d(k), depth - 1)
+        n = n + 1
+    Next k
+    repr_dictionary = Join(parts, ", ")
+End Function
+
+Private Function repr_array(ByRef arr As Variant, ByVal depth As Long) As String
+    Dim nd As Long
+    nd = array_dims(arr)
+    Select Case nd
+        Case 0:  repr_array = "Array()"
+        Case 1:  repr_array = repr_1d(arr, depth)
+        Case 2:  repr_array = repr_2d(arr, depth)
+        Case Else: repr_array = array_summary(arr, nd)
+    End Select
+End Function
+
+' 探测维度数；未定维空数组返回 0。对不存在的维度取 LBound 会抛错，
+' 用 On Error 作"到达最高维"的终止信号（流控，非吞错）。
+Private Function array_dims(ByRef arr As Variant) As Long
+    Dim nd As Long
+    Dim lo As Long, hi As Long
+    On Error GoTo done
+    nd = 0
+    Do While True
+        lo = LBound(arr, nd + 1)
+        hi = UBound(arr, nd + 1)
+        nd = nd + 1
+    Loop
+done:
+    On Error GoTo 0
+    array_dims = nd
+End Function
+
+Private Function repr_1d(ByRef arr As Variant, ByVal depth As Long) As String
+    Dim lo As Long, hi As Long
+    Dim i As Long
+    Dim parts() As String
+    lo = LBound(arr, 1)
+    hi = UBound(arr, 1)
+    If hi < lo Then
+        repr_1d = "Array()"
+        Exit Function
+    End If
+    ReDim parts(0 To hi - lo)
+    For i = lo To hi
+        parts(i - lo) = Repr(arr(i), depth - 1)
+    Next i
+    repr_1d = "[" & Join(parts, ", ") & "]"
+End Function
+
+Private Function repr_2d(ByRef arr As Variant, ByVal depth As Long) As String
+    Dim r As Long, c As Long
+    Dim rlo As Long, rhi As Long, clo As Long, chi As Long
+    Dim rows() As String
+    Dim cells() As String
+    rlo = LBound(arr, 1): rhi = UBound(arr, 1)
+    clo = LBound(arr, 2): chi = UBound(arr, 2)
+    If rhi < rlo Or chi < clo Then
+        repr_2d = "Array()"
+        Exit Function
+    End If
+    ReDim rows(0 To rhi - rlo)
+    For r = rlo To rhi
+        ReDim cells(0 To chi - clo)
+        For c = clo To chi
+            cells(c - clo) = Repr(arr(r, c), depth - 1)
+        Next c
+        rows(r - rlo) = "[" & Join(cells, ", ") & "]"
+    Next r
+    repr_2d = "[" & Join(rows, ", ") & "]"
+End Function
+
+' 三维及以上数组逐元素展开会指数膨胀，输出结构摘要即可（维数 × 各维长度）
+Private Function array_summary(ByRef arr As Variant, ByVal nd As Long) As String
+    Dim i As Long
+    Dim s As String
+    s = ""
+    For i = 1 To nd
+        If i > 1 Then s = s & "x"
+        s = s & CStr(UBound(arr, i) - LBound(arr, i) + 1)
+    Next i
+    array_summary = "Array<" & nd & "D " & s & ">"
+End Function
 
 '--- 运行期日志 -------------------------------------------------------
 

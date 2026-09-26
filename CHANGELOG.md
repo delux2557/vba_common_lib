@@ -9,6 +9,10 @@
 ## [Unreleased]
 
 ### Added
+- `mod_debug` 新增通用对象打印 `Repr(obj[, max_depth])` / `Print_Repr`：Python 风格 repr，
+  解决 `Debug.Print` 直接打印对象报错的问题。数组(一维/二维逐元素展开，三维及以上输出
+  结构摘要)、集合、字典、Range(地址+值)、普通对象(有默认成员按默认值展示，否则
+  `<类型 at 0x地址>`)；标量字符串加引号并转义内部引号，深度默认 16 层防循环引用无限递归
 - `mod_date` 新增 UTC 与格式化：`Date_UtcNow`（GetSystemTime 取 UTC，无 COM 依赖）、
   `Date_ToUtc` / `Date_FromUtc`（按当前时区偏移换算，往返可还原）、`Date_StampUtc`（UTC 时间戳，
   与 `Date_Stamp` 同款 kind 格式）、`Date_Format`（统一默认 `yyyy-mm-dd hh:nn:ss` 的 `Format$` 封装）

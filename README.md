@@ -84,6 +84,7 @@ vba_common_lib/
 
 ### 调试输出 `mod_debug`
 开发期打印：`Show_Arr_Members`（维度）/ `Print_Array` / `Print_Clc` / `Print_Dict` / `Print_Lines`
+/ `Repr(obj[, max_depth])`（通用对象字符串表示，Python 风格：数组/集合/字典/Range/普通对象；`Debug.Print` 直接打印对象会报错，用 `Print_Repr` 输出）
 运行期日志：`Log_Debug` / `Log_Info` / `Log_Warn` / `Log_Error`（时间戳+级别，级别过滤，
 可落盘 UTF-16 文件）`/ Log_SetLevel`（"debug"<"info"<"warn"<"error"）`/ Log_SetFile`（空串关闭）
 
