@@ -13,6 +13,11 @@
   解决 `Debug.Print` 直接打印对象报错的问题。数组(一维/二维逐元素展开，三维及以上输出
   结构摘要)、集合、字典、Range(地址+值)、普通对象(有默认成员按默认值展示，否则
   `<类型 at 0x地址>`)；标量字符串加引号并转义内部引号，深度默认 16 层防循环引用无限递归
+- `mod_range` 新增批量单元格读写：`Range_ReadValues(rng)`（一次读整块，原生 Value 语义：
+  单格→标量、整行/整列→一维、多格→二维 1 基数组）、`Range_WriteValues(rng, values[, as_column])`
+  （一次写整块：二维数组按尺寸自动 Resize 以左上角为锚点、标量填充全区、一维数组可转置成列；
+  写入期间临时关 ScreenUpdating 防闪烁并成败均恢复——替代逐格循环，性能差一个数量级；
+  多区域 / Nothing / 空数组 / 对象等非法输入抛错 #45000）
 - `mod_date` 新增 UTC 与格式化：`Date_UtcNow`（GetSystemTime 取 UTC，无 COM 依赖）、
   `Date_ToUtc` / `Date_FromUtc`（按当前时区偏移换算，往返可还原）、`Date_StampUtc`（UTC 时间戳，
   与 `Date_Stamp` 同款 kind 格式）、`Date_Format`（统一默认 `yyyy-mm-dd hh:nn:ss` 的 `Format$` 封装）

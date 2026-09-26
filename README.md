@@ -112,6 +112,8 @@ vba_common_lib/
 
 ### 单元格区域 `mod_range`
 `Range_Address` / `Range_SheetAddress`（带表名）/ `Range_ShiftAddress`（偏移）/ `Range_JoinedAddress`（多区域拼接）
+/ `Range_ReadValues`（一次读整块：单格→标量、整行整列→一维、多格→二维数组）
+/ `Range_WriteValues`（一次写整块：数组按尺寸自动 Resize、标量填充全区、一维数组 `as_column=True` 转置成列；写入时自动关 ScreenUpdating 防闪烁）
 
 ### 对话框 `mod_ui`
 `File_Pick` / `Folder_Pick`（`Application.FileDialog`）

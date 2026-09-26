@@ -93,4 +93,65 @@ Private Sub suite_range()
     Set r = ThisWorkbook.Sheets(1).Range("A1:B2")
     r.Value = 5
     Test_Equal mod_debug.Repr(r), "Range(""A1:B2"", Value=[[5, 5], [5, 5]])", "Repr: 多单元格 Range 值数组"
+
+    ' Range_WriteValues / Range_ReadValues 批量读写（D 列起，避开 A 列既有断言）
+    Dim r_block As Range
+    Set r_block = ThisWorkbook.Sheets(1).Range("D1:E2")
+    Dim src2d(1 To 2, 1 To 2) As Variant
+    src2d(1, 1) = 10: src2d(1, 2) = 20
+    src2d(2, 1) = 30: src2d(2, 2) = 40
+    mod_range.Range_WriteValues r_block, src2d
+    Dim got As Variant
+    got = mod_range.Range_ReadValues(r_block)
+    Test_Equal CStr(got(1, 1)) & "|" & CStr(got(1, 2)) & "|" & CStr(got(2, 1)) & "|" & CStr(got(2, 2)), _
+                "10|20|30|40", "Range_Write/ReadValues: 二维数组往返"
+
+    mod_range.Range_WriteValues r_block, 7
+    got = mod_range.Range_ReadValues(r_block)
+    Test_Equal CStr(got(1, 1)) & "|" & CStr(got(2, 2)), "7|7", "Range_WriteValues: 标量填充全区"
+
+    Dim r_cell As Range
+    Set r_cell = ThisWorkbook.Sheets(1).Range("D4")
+    Dim one_d As Variant
+    one_d = Array(1, 2, 3)
+    mod_range.Range_WriteValues r_cell, one_d
+    Test_Equal CStr(r_cell.Value) & "|" & CStr(r_cell.Offset(0, 1).Value) & "|" & CStr(r_cell.Offset(0, 2).Value), _
+                "1|2|3", "Range_WriteValues: 一维数组按行展开"
+
+    Set r_cell = ThisWorkbook.Sheets(1).Range("D5")
+    mod_range.Range_WriteValues r_cell, one_d, True
+    Test_Equal CStr(r_cell.Value) & "|" & CStr(r_cell.Offset(1, 0).Value) & "|" & CStr(r_cell.Offset(2, 0).Value), _
+                "1|2|3", "Range_WriteValues: 一维数组按列(as_column)"
+
+    ' 非法输入抛错
+    Dim r_anchor As Range
+    Set r_anchor = ThisWorkbook.Sheets(1).Range("A1")
+    Dim empty_arr As Variant
+    empty_arr = Array()
+    Dim caught2 As Boolean
+    caught2 = False
+    On Error Resume Next
+    mod_range.Range_WriteValues r_anchor, empty_arr
+    If Err.Number <> 0 Then caught2 = True
+    Err.Clear
+    On Error GoTo 0
+    Test_True caught2, "Range_WriteValues: 空数组抛错"
+
+    Dim r_multi As Range
+    Set r_multi = ThisWorkbook.Sheets(1).Range("A1,B2")
+    caught2 = False
+    On Error Resume Next
+    mod_range.Range_WriteValues r_multi, 1
+    If Err.Number <> 0 Then caught2 = True
+    Err.Clear
+    On Error GoTo 0
+    Test_True caught2, "Range_WriteValues: 多区域抛错"
+
+    caught2 = False
+    On Error Resume Next
+    mod_range.Range_ReadValues r_multi
+    If Err.Number <> 0 Then caught2 = True
+    Err.Clear
+    On Error GoTo 0
+    Test_True caught2, "Range_ReadValues: 多区域抛错"
 End Sub
