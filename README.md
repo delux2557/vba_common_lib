@@ -108,7 +108,10 @@ vba_common_lib/
 ### Excel 绑定层 `xls/`（依赖 Excel 宿主，随纯层一起导入）
 
 ### 工作簿 `mod_workbook`
-`Sheet_Exists` / `Workbook_Exists` / `Workbook_SheetNames` / `Workbook_AllSheetNames` / `Workbook_SaveWithBackup`（带时间戳备份；`do_save` 可选，出错时自动恢复宿主 `DisplayAlerts`）
+`Sheet_Exists` / `Sheet_Get`（按名取对象，不存在返回 `Nothing`）/ `Sheet_Create`（新建，可插到指定表前，重名抛错）
+/ `Sheet_Ensure`（幂等：不存在则建，日常"确保某张表在"）/ `Sheet_Rename` / `Sheet_Copy`（默认 "原名 (2)"，复制后恢复活动表）
+/ `Sheet_Delete`（破坏性操作，至少保留一张表，自动免确认弹窗）/ `Workbook_SheetCount`
+/ `Workbook_Exists` / `Workbook_SheetNames` / `Workbook_AllSheetNames` / `Workbook_SaveWithBackup`（带时间戳备份；`do_save` 可选，出错时自动恢复宿主 `DisplayAlerts`）
 
 ### 单元格区域 `mod_range`
 `Range_Address` / `Range_SheetAddress`（带表名）/ `Range_ShiftAddress`（偏移）/ `Range_JoinedAddress`（多区域拼接）

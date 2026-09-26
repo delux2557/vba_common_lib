@@ -9,6 +9,11 @@
 ## [Unreleased]
 
 ### Added
+- `mod_workbook` 新增工作表批量管理：`Sheet_Get`（按名取对象，不存在返回 Nothing）、
+  `Sheet_Create`（新建，支持插到指定表前，重名抛错）、`Sheet_Ensure`（幂等：不存在则建，日常
+  "确保某张表在"）、`Sheet_Rename`（空名/重名抛错）、`Sheet_Copy`（默认 "原名 (2)" 命名，
+  复制后恢复活动表）、`Sheet_Delete`（破坏性操作，至少保留一张表；临时关 DisplayAlerts 免确认弹窗，
+  成败均恢复）、`Workbook_SheetCount`；非法输入统一抛错 #45000，带教学式中文注释
 - `mod_debug` 新增通用对象打印 `Repr(obj[, max_depth])` / `Print_Repr`：Python 风格 repr，
   解决 `Debug.Print` 直接打印对象报错的问题。数组(一维/二维逐元素展开，三维及以上输出
   结构摘要)、集合、字典、Range(地址+值)、普通对象(有默认成员按默认值展示，否则

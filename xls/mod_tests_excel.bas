@@ -76,6 +76,66 @@ Private Sub suite_workbook()
     Dim names As Variant
     names = mod_workbook.Workbook_SheetNames(ThisWorkbook)
     Test_True mod_array.Array_Contains(names, "Sheet1"), "Workbook_SheetNames: 含 Sheet1"
+
+    '--- 工作表批量管理（临时表统一 T_ 前缀，套件末尾兜底清理） ---------
+    Test_True (mod_workbook.Workbook_SheetCount(ThisWorkbook) > 0), "Workbook_SheetCount: >0"
+    Test_True (Not mod_workbook.Sheet_Get("Sheet1", ThisWorkbook) Is Nothing), "Sheet_Get: 存在返回对象"
+    Test_True (mod_workbook.Sheet_Get("no_such_sheet_9", ThisWorkbook) Is Nothing), "Sheet_Get: 不存在返回 Nothing"
+
+    Dim ws_t As Worksheet
+    Set ws_t = mod_workbook.Sheet_Ensure("T_ws_ensure", ThisWorkbook)
+    Test_True (Not ws_t Is Nothing), "Sheet_Ensure: 不存在则新建"
+    Test_True mod_workbook.Sheet_Exists("T_ws_ensure", ThisWorkbook), "Sheet_Ensure: 新建后存在"
+    Dim ws_t2 As Worksheet
+    Set ws_t2 = mod_workbook.Sheet_Ensure("T_ws_ensure", ThisWorkbook)
+    Test_True (ws_t2 Is ws_t), "Sheet_Ensure: 已存在幂等返回同一对象"
+
+    Dim caught As Boolean
+    caught = False
+    On Error Resume Next
+    mod_workbook.Sheet_Create "T_ws_dup", ThisWorkbook
+    mod_workbook.Sheet_Create "T_ws_dup", ThisWorkbook
+    If Err.Number <> 0 Then caught = True
+    On Error GoTo 0
+    Test_True caught, "Sheet_Create: 重名抛错"
+    mod_workbook.Sheet_Delete mod_workbook.Sheet_Get("T_ws_dup", ThisWorkbook)
+
+    Dim act_before As Worksheet
+    Set act_before = ThisWorkbook.ActiveSheet
+    Dim ws_copy As Worksheet
+    Set ws_copy = mod_workbook.Sheet_Copy(ws_t)
+    Test_True (Not ws_copy Is Nothing), "Sheet_Copy: 返回副本对象"
+    Test_True mod_workbook.Sheet_Exists("T_ws_ensure (2)", ThisWorkbook), "Sheet_Copy: 默认命名 原名 (2)"
+    Test_True (ThisWorkbook.ActiveSheet Is act_before), "Sheet_Copy: 复制后恢复活动表"
+
+    mod_workbook.Sheet_Rename ws_copy, "T_ws_copied"
+    Test_False mod_workbook.Sheet_Exists("T_ws_ensure (2)", ThisWorkbook), "Sheet_Rename: 旧名不再存在"
+    Test_True mod_workbook.Sheet_Exists("T_ws_copied", ThisWorkbook), "Sheet_Rename: 新名存在"
+    caught = False
+    On Error Resume Next
+    mod_workbook.Sheet_Rename ws_copy, "T_ws_ensure"
+    If Err.Number <> 0 Then caught = True
+    On Error GoTo 0
+    Test_True caught, "Sheet_Rename: 重名抛错"
+
+    mod_workbook.Sheet_Delete ws_copy
+    Test_False mod_workbook.Sheet_Exists("T_ws_copied", ThisWorkbook), "Sheet_Delete: 删除后不存在"
+    mod_workbook.Sheet_Delete ws_t
+    Test_False mod_workbook.Sheet_Exists("T_ws_ensure", ThisWorkbook), "Sheet_Delete: 删除源表"
+
+    ' 兜底清理：删除所有 T_ 前缀临时表（逐次遍历避免 For Each 删除跳项）
+    Dim sh_clean As Worksheet
+    Dim found_t As Boolean
+    Do
+        found_t = False
+        For Each sh_clean In ThisWorkbook.Sheets
+            If Left$(sh_clean.Name, 2) = "T_" Then
+                mod_workbook.Sheet_Delete sh_clean
+                found_t = True
+                Exit For
+            End If
+        Next sh_clean
+    Loop While found_t
 End Sub
 
 Private Sub suite_range()
