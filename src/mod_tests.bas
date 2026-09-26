@@ -195,6 +195,11 @@ Private Sub suite_file()
     Dim files As Variant
     files = mod_file.Folder_ListFiles(tmp)
     Test_True mod_array.Array_Contains(files, tmp & "\a.txt"), "Folder_ListFiles: 包含 a.txt"
+    ' 多级递归创建
+    Dim deep As String
+    deep = tmp & "\a\b\c"
+    Test_Equal mod_file.Folder_Ensure(deep), deep, "Folder_Ensure: 多级递归创建"
+    Test_True mod_file.Folder_Exists(deep), "Folder_Exists: 多级后存在"
     ' 清理
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
@@ -286,6 +291,12 @@ Private Sub suite_json()
     Test_False CBool(o("f")), "JSON_Parse: false"
     Test_True IsNull(o("n")), "JSON_Parse: null"
     Test_Equal CStr(o("pi")), "3.5", "JSON_Parse: 浮点数"
+
+    ' 大整数（超出 Long 范围 2^31-1 不应抛 VBA 溢出错误，且往返不丢精度）
+    Set o = mod_json.JSON_Parse("{""big"":9223372036854775807,""neg"":-9223372036854775808}")
+    Test_Equal CStr(o("big")), "9223372036854775807", "JSON_Parse: 大整数(>Long)"
+    Test_Equal CStr(o("neg")), "-9223372036854775808", "JSON_Parse: 负大整数"
+    Test_Equal mod_json.JSON_Stringify(o), "{""big"":9223372036854775807,""neg"":-9223372036854775808}", "JSON 大整数往返"
 
     ' 空对象 / 空数组
     Set o = mod_json.JSON_Parse("{}")

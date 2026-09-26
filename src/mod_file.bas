@@ -36,11 +36,41 @@ Public Function Folder_Exists(ByVal folder_path As String) As Boolean
     Folder_Exists = Get_FSO().FolderExists(folder_path)
 End Function
 
-' 确保文件夹存在（不存在则创建），并返回该路径；适合"写文件前先建目录"。
+' 确保文件夹存在（不存在则逐级创建），并返回该路径；适合"写文件前先建目录"。
+' FSO CreateFolder 一次只能建一层，多级路径（如 a\b\c 均不存在）须从根逐级创建；
+' 支持盘符路径与 UNC 路径，路径已存在则直接返回。
 Public Function Folder_Ensure(ByVal folder_path As String) As String
     Dim fso As Object
+    Dim root As String
+    Dim parts As Variant
+    Dim cur As String
+    Dim i As Long
     Set fso = Get_FSO()
-    If Not fso.FolderExists(folder_path) Then fso.CreateFolder folder_path
+    If Len(folder_path) = 0 Then
+        Folder_Ensure = folder_path
+        Exit Function
+    End If
+    folder_path = Replace(folder_path, "/", "\")
+    If fso.FolderExists(folder_path) Then
+        Folder_Ensure = folder_path
+        Exit Function
+    End If
+    ' 提取根：盘符 "C:\" 或 UNC "\\server\share\"；根不存在时 CreateFolder 抛错交由调用方
+    root = ""
+    If Len(folder_path) >= 3 And Mid$(folder_path, 2, 1) = ":" Then
+        root = Left$(folder_path, 3)
+    ElseIf Left$(folder_path, 2) = "\\" Then
+        parts = Split(folder_path, "\")
+        If UBound(parts) >= 3 Then root = "\\" & parts(2) & "\" & parts(3) & "\"
+    End If
+    cur = root
+    parts = Split(Mid$(folder_path, Len(root) + 1), "\")
+    For i = LBound(parts) To UBound(parts)
+        If Len(parts(i)) > 0 Then
+            cur = cur & parts(i) & "\"
+            If Not fso.FolderExists(cur) Then fso.CreateFolder cur
+        End If
+    Next i
     Folder_Ensure = folder_path
 End Function
 

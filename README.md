@@ -70,7 +70,7 @@ vba_common_lib/
 `Date_Stamp(kind)`：`date`(YYYYMMDD) / `time`(hhmmss) / `datetime`(YYYY_MMDD_hhmm) / `stamp`(YYYY_MMDD_hhmmss, 默认，文件名安全)
 
 ### 文件路径 `mod_file`（FSO 晚绑定）
-存在判断：`File_Exists` / `Folder_Exists`；文件操作：`Folder_Ensure` / `File_Copy` / `File_Write`（注意默认 `unicode=True` 为 UTF-16）
+存在判断：`File_Exists` / `Folder_Exists`；文件操作：`Folder_Ensure`（递归创建多级） / `File_Copy` / `File_Write`（注意默认 `unicode=True` 为 UTF-16）
 路径解析：`File_Name` / `File_BaseName` / `File_ExtName` / `File_Name_Valid`
 `Folder_ListFiles`（可递归）
 

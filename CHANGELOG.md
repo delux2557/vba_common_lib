@@ -6,6 +6,15 @@
 > **版本号唯一来源是 `src/VERSION`**（构建时自动生成 `mod_version` 注入运行期）。
 > CHANGELOG 仅在发版时登记版本号与变更内容，不承担"版本定义"职责，防止多来源漂移。
 
+## [Unreleased]
+
+### Fixed
+- `JSON_Parse` 大整数（超出 Long 范围 2^31-1）不再抛 VBA 溢出错误：解析用 Decimal 承接，
+  序列化对 Decimal 直出完整数字，大整数往返不丢精度
+- `Folder_Ensure` 支持多级目录递归创建（原仅能创建单层）
+- `mod_ui` 的 `File_Pick` / `Folder_Pick` 本地化 Office 常量并改晚绑定 `Object` 调用，
+  兑现"无需勾选 Office 引用"承诺（模块版本 v1.1）
+
 ## [1.0.0] - 2026-09-26
 
 ### Added

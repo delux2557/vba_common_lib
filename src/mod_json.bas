@@ -215,7 +215,14 @@ Private Function parse_number(ByRef s As String, ByRef pos As Long) As Variant
     If InStr(1, token, ".", vbBinaryCompare) > 0 Or InStr(1, token, "E", vbBinaryCompare) > 0 Then
         parse_number = CDbl(token)
     Else
-        parse_number = CLng(token)
+        ' 整数优先用 Decimal 承接：超过 Long 范围(2^31-1)时 CLng 会抛溢出错误，
+        ' 与解析器统一的 #45000 语义冲突；Decimal 覆盖约 ±7.9e28，仍超限才回退 Double。
+        On Error GoTo dec_fail
+        parse_number = CDec(token)
+        Exit Function
+dec_fail:
+        On Error GoTo 0
+        parse_number = CDbl(token)
     End If
 End Function
 
@@ -295,7 +302,10 @@ End Function
 Private Function ser_number(ByVal value As Variant) As String
     Dim vt As Integer
     vt = VarType(value)
-    If vt = vbLong Or vt = vbInteger Or vt = vbByte Or vt = vbDecimal Or vt = vbSingle Or vt = vbDouble Then
+    If vt = vbDecimal Then
+        ' Decimal 直接字符串化：转 Double 会丢精度（大整数变科学计数法，如 2^63-1）
+        ser_number = CStr(value)
+    ElseIf vt = vbLong Or vt = vbInteger Or vt = vbByte Or vt = vbSingle Or vt = vbDouble Then
         If value = Fix(value) And CDbl(Abs(value)) < 2147483647# Then
             ser_number = CStr(CLng(value))
         Else
