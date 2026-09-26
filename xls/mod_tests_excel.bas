@@ -48,6 +48,7 @@ Public Function Run_All_Tests(Optional ByVal report_path As String = vbNullStrin
     log_line "===== VBA Common Lib (Excel 绑定层) 单元测试开始 ====="
     run_protected "suite_workbook"
     run_protected "suite_range"
+    run_protected "suite_demo"
     log_line "===== 结束：通过 " & p_pass & " / 失败 " & p_fail & " ====="
     If Len(report_path) > 0 Then mod_file.File_Write report_path, p_report, False, True
     Run_All_Tests = p_fail
@@ -59,6 +60,7 @@ Private Sub run_protected(ByVal suite As String)
     Select Case suite
         Case "suite_workbook": suite_workbook
         Case "suite_range":    suite_range
+        Case "suite_demo":     suite_demo
     End Select
     Exit Sub
 crash:
@@ -214,4 +216,47 @@ Private Sub suite_range()
     Err.Clear
     On Error GoTo 0
     Test_True caught2, "Range_ReadValues: 多区域抛错"
+End Sub
+
+Private Sub suite_demo()
+    log_line "--- mod_demo ---"
+    ' 运行完整演示：造数据(60x2, 噪声±0.8, 真系数[2,3,-1], seed=7) → 训练 → 预测 → 评估 → 写表
+    mod_demo.Demo_Ml_LinearReg
+    Dim ws_d As Worksheet
+    Set ws_d = ThisWorkbook.Worksheets("线性回归演示")
+    Test_True (Not ws_d Is Nothing), "Demo: 生成演示工作表"
+    If ws_d Is Nothing Then Exit Sub
+    ' 数据表：表头 + 60 行数据（A1 起）
+    Test_Equal CStr(ws_d.Cells(1, 1).Value), "特征1", "Demo: 数据表表头"
+    Test_Equal CStr(ws_d.Cells(1, 3).Value), "y(标签)", "Demo: 数据表标签列"
+    Test_True (ws_d.Cells(61, 3).Value <> vbNullString), "Demo: 60 行数据已写入"
+    ' 系数区：按标签文本 Find 定位（布局变动不破坏断言）
+    Dim r_tag As Range
+    Set r_tag = ws_d.Columns(1).Find("截距 b0", LookAt:=xlWhole)
+    Test_True (Not r_tag Is Nothing), "Demo: 找到截距标签"
+    If r_tag Is Nothing Then Exit Sub
+    Test_True (Abs(r_tag.Offset(0, 1).Value - 2#) < 0.5), "Demo: 截距逼近 2"
+    Set r_tag = ws_d.Columns(1).Find("权重 w1", LookAt:=xlWhole)
+    Test_True (Not r_tag Is Nothing), "Demo: 找到 w1 标签"
+    If r_tag Is Nothing Then Exit Sub
+    Test_True (Abs(r_tag.Offset(0, 1).Value - 3#) < 0.3), "Demo: w1 逼近 3"
+    Set r_tag = ws_d.Columns(1).Find("权重 w2", LookAt:=xlWhole)
+    Test_True (Not r_tag Is Nothing), "Demo: 找到 w2 标签"
+    If r_tag Is Nothing Then Exit Sub
+    Test_True (Abs(r_tag.Offset(0, 1).Value + 1#) < 0.3), "Demo: w2 逼近 -1"
+    Set r_tag = ws_d.Columns(1).Find("拟合优度 R2", LookAt:=xlWhole)
+    Test_True (Not r_tag Is Nothing), "Demo: 找到 R2 标签"
+    If r_tag Is Nothing Then Exit Sub
+    Test_True (r_tag.Offset(0, 1).Value > 0.9), "Demo: R2 高"
+    ' 预测对比：按"模型预测"表头定位列，其下 3 行依次是 3 个新样本的预测
+    Dim r_mp As Range
+    Set r_mp = ws_d.Cells.Find(What:="模型预测", LookAt:=xlWhole)
+    Test_True (Not r_mp Is Nothing), "Demo: 找到预测表"
+    If r_mp Is Nothing Then Exit Sub
+    Test_True (Abs(r_mp.Offset(1, 0).Value - 4#) < 0.5), "Demo: 预测(1.5,2.5) 逼近 4"
+    Test_True (Abs(r_mp.Offset(2, 0).Value - 11#) < 0.5), "Demo: 预测(4,3) 逼近 11"
+    Test_True (Abs(r_mp.Offset(3, 0).Value - 22.5) < 0.5), "Demo: 预测(7,0.5) 逼近 22.5"
+    ' 清理演示表
+    mod_workbook.Sheet_Delete ws_d
+    Test_False mod_workbook.Sheet_Exists("线性回归演示", ThisWorkbook), "Demo: 清理演示表"
 End Sub

@@ -33,6 +33,10 @@
   与 `Date_Stamp` 同款 kind 格式）、`Date_Format`（统一默认 `yyyy-mm-dd hh:nn:ss` 的 `Format$` 封装）
 - `mod_string` 新增模板格式化 `String_Format(template, args...)`：`{0}` 占位符替换、`{{` / `}}` 转义；
   参数越界 / 占位符语法错误 / 多余 `}` 抛错 #45000（调用方错误尽早暴露）
+- `mod_demo` 新增线性回归完整演示 `Demo_Ml_LinearReg`（xls/ 演示层，导入即用）：造数据（60 样本
+  2 特征、噪声 ±0.8、真系数 [2,3,-1]、seed=7 可复现）→ 训练 → 3 个新样本预测对比 → R2 评估 →
+  自动写回"线性回归演示"工作表（数据表 / 模型系数 / 预测对比三区块 + 轻量美化），并在立即窗口
+  打印全程关键数值；配套 `suite_demo` 断言（标签 Find 定位，布局变动不破坏）
 
 ### Fixed
 - `Date_ToUtc` / `Date_FromUtc` 参数名避开 VBA 保留字 `local`：保留字作标识符会使该过程无法编译、
