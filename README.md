@@ -29,13 +29,15 @@ vba_common_lib/
 │   ├── mod_ui.bas        # 文件对话框 File_Pick / Folder_Pick
 │   └── mod_tests_excel.bas  # Excel 层单元测试
 ├── src/VERSION           # 语义化版本号唯一来源（如 1.0.0）；构建时注入 mod_version
-├── CHANGELOG.md          # 版本变更记录（Keep a Changelog 风格）
+├── CHANGELOG.md          # 版本变更记录（Keep a Changelog 风格；版本号以 src/VERSION 为准）
+├── LICENSE               # MIT License
 ├── tools/                # Python（win32com 驱动真实 Excel）
 │   ├── vba_excel.py      # 共享封装（启动/清空/导入/打包，支持多 --src 分层）
 │   ├── vba_import.py     # 一键 清空+导入 到目标 .xlsm
 │   ├── run_tests.py      # 跑单测（--entry 选纯层/Excel 层），返回失败数
 │   ├── vba_build_xlam.py # 打包 .xlam
 │   ├── vba_check_lint.py # 离线静态契约检查（可 CI 门禁）
+│   ├── verify_smoke.py   # 冒烟验证（--host 指定宿主；缺省自动新建并导入）
 │   └── vba_new_host.py   # 新建空宿主 .xlsm（备用）
 ├── build/                # 产物（测试宿主 / .xlam）
 └── README.md
@@ -192,3 +194,9 @@ python tools/vba_build_xlam.py --src src --src xls --out build/VBA_Common_Full.x
 - **晚绑定**：正则、字典、FSO 均 `CreateObject` 晚绑定，**无需手动勾选外部引用**。
 - **无共享状态**：正则每次新建 RegExp；FSO 用模块级单例惰性初始化。
 - **测试即文档**：`Run_All_Tests` 的每条断言即每个函数的可运行用法（example-as-test）。
+
+---
+
+## License
+
+[MIT](LICENSE) © 2026 delux2557

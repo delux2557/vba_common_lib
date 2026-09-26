@@ -3,12 +3,19 @@
 本项目版本变更记录，按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 惯例维护。
 格式为 YYYY-MM-DD 的日志、语义化版本号（Semver）。
 
-## [Unreleased]
+> **版本号唯一来源是 `src/VERSION`**（构建时自动生成 `mod_version` 注入运行期）。
+> CHANGELOG 仅在发版时登记版本号与变更内容，不承担"版本定义"职责，防止多来源漂移。
+
+## [1.0.0] - 2026-09-26
 
 ### Added
 - 纯层新增 7 个函数：`Array_IndexOf` / `Array_Remove` / `Array_RemoveAt`、`String_StartsWith` / `String_EndsWith` / `String_LeftPad`、`Dict_FromArray`（`Dict_To_Array` 之逆）
 - 测试增至 106 例（纯层 99 + Excel 层 7）
 - 新增 pre-push 静态门禁：契约检查（`vba_check_lint.py`）+ 工具脚本 `py_compile`，由 `tools/install_hooks.py` 安装
+
+### Changed
+- 新增 MIT License（`LICENSE`）
+- `tools/verify_smoke.py` 去掉硬编码宿主路径，改为 `--host` 参数指定（缺省自动新建宿主并导入模块）
 
 ## [0.1.0] - 2026-09-18
 
