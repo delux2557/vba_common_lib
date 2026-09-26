@@ -16,7 +16,7 @@ vba_common_lib/
 │   ├── mod_array.bas
 │   ├── mod_string.bas
 │   ├── mod_regex.bas
-│   ├── mod_date.bas      # Date_Stamp(kind) 统一时间戳
+│   ├── mod_date.bas      # Date_Stamp/StampUtc 时间戳 + UTC 换算 + 格式化
 │   ├── mod_file.bas      # FSO 文件/文件夹（无 UI）
 │   ├── mod_debug.bas
 │   ├── mod_dict.bas      # P1：晚绑定 Dictionary 封装
@@ -53,7 +53,7 @@ vba_common_lib/
 
 ---
 
-## 功能清单（67 个对外 API · 12 个功能模块 = 纯层 9 + Excel 层 3）
+## 功能清单（73 个对外 API · 12 个功能模块 = 纯层 9 + Excel 层 3）
 
 ### 纯 VBA 层 `src/`（宿主无关）
 
@@ -66,12 +66,16 @@ vba_common_lib/
 ### 字符串 `mod_string`
 `String_To_Array` / `String_Join` / `String_Trim`（可指定字符集）/ `String_LTrim` / `String_RTrim` / `String_Random`（长度+字符集可选）
 / `String_StartsWith` / `String_EndsWith` / `String_LeftPad`（左填充到指定长度）
+/ `String_Format`（模板格式化：`{0}` 占位符替换，`{{` / `}}` 转义，参数越界抛错）
 
 ### 正则 `mod_regex`（晚绑定）
 `Regex_Test` / `Regex_Find` / `Regex_Replace`（全局）
 
 ### 日期时间 `mod_date`
 `Date_Stamp(kind)`：`date`(YYYYMMDD) / `time`(hhmmss) / `datetime`(YYYY_MMDD_hhmm) / `stamp`(YYYY_MMDD_hhmmss, 默认，文件名安全)
+`Date_StampUtc(kind)`：UTC 时间戳，同款格式；`Date_UtcNow`（GetSystemTime 取 UTC，无 COM 依赖）
+/ `Date_ToUtc(dt_local)` / `Date_FromUtc(utc_dt)`（按当前时区偏移换算，往返可还原）
+/ `Date_Format(dt[, pattern])`（默认 `yyyy-mm-dd hh:nn:ss` 的 `Format$` 封装）
 
 ### 文件路径 `mod_file`（FSO 晚绑定）
 存在判断：`File_Exists` / `Folder_Exists`；文件操作：`Folder_Ensure`（递归创建多级） / `File_Copy` / `File_Write`（注意默认 `unicode=True` 为 UTF-16）
@@ -132,10 +136,10 @@ VBA 没有命名空间，「体系」靠 **域名前缀字典 + 模块顶部目�
 | `Array_*` | 数组操作（`Array_Contains/Distinct/Extend/Append`） | |
 | `Array_Map/Filter/All/Any` | 高阶函数（回调传 `Application.Run` 可达的函数名） | |
 | `Collection_*` / `*_To_*` | 集合操作 / 转换（`Collection_To_Array`、`String_To_Array`） | 转换统一 `<From>_To_<To>` |
-| `String_*` | 字符串操作（`String_Trim/Join/Random`） | |
+| `String_*` | 字符串操作（`String_Trim/Join/Random/Format`） | |
 | `Regex_*` | 正则（`Regex_Test/Find/Replace`） | |
 | `File_*` / `Folder_*` | 文件 / 文件夹（`File_Exists`、`Folder_Ensure`、`Folder_ListFiles`） | |
-| `Date_*` | 日期时间（`Date_Stamp`） | |
+| `Date_*` | 日期时间（`Date_Stamp/UtcNow/ToUtc/FromUtc/Format`） | |
 | `Sheet_*` / `Workbook_*` | 工作表 / 工作簿（`Sheet_Exists`、`Workbook_SheetNames`） | |
 | `Range_*` | Range 地址（`Range_Address`、`Range_ShiftAddress`） | |
 

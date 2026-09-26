@@ -163,6 +163,41 @@ Private Sub suite_string()
     Test_Equal mod_string.String_LeftPad("7", 3, "0"), "007", "LeftPad: 指定填充"
     Test_Equal mod_string.String_LeftPad("ab", 4), "  ab", "LeftPad: 默认空格"
     Test_Equal mod_string.String_LeftPad("abc", 2), "abc", "LeftPad: 原长>=目标不变"
+
+    ' 模板格式化
+    Test_Equal mod_string.String_Format("a={0}", 1), "a=1", "String_Format: 单参数"
+    Test_Equal mod_string.String_Format("{0}-{1}-{0}", "x", "y"), "x-y-x", "String_Format: 多参数重复引用"
+    Test_Equal mod_string.String_Format("no placeholders"), "no placeholders", "String_Format: 无占位符"
+    Test_Equal mod_string.String_Format("{{ok}}"), "{ok}", "String_Format: 花括号转义"
+    Test_Equal mod_string.String_Format("{0}", ""), "", "String_Format: 空串参数"
+    Test_Equal mod_string.String_Format("{0}", 42), "42", "String_Format: 数字转字符串"
+    Test_Equal mod_string.String_Format("{0}", "中文"), "中文", "String_Format: 中文参数"
+
+    Dim f_caught As Boolean
+    Dim f_dummy As String
+    f_caught = False
+    On Error Resume Next
+    f_dummy = mod_string.String_Format("{5}", 1)
+    If Err.Number <> 0 Then f_caught = True
+    Err.Clear
+    On Error GoTo 0
+    Test_True f_caught, "String_Format: 参数越界抛错"
+
+    f_caught = False
+    On Error Resume Next
+    f_dummy = mod_string.String_Format("a{0")
+    If Err.Number <> 0 Then f_caught = True
+    Err.Clear
+    On Error GoTo 0
+    Test_True f_caught, "String_Format: 占位符语法错误抛错"
+
+    f_caught = False
+    On Error Resume Next
+    f_dummy = mod_string.String_Format("a}b")
+    If Err.Number <> 0 Then f_caught = True
+    Err.Clear
+    On Error GoTo 0
+    Test_True f_caught, "String_Format: 多余 } 抛错"
 End Sub
 
 Private Sub suite_regex()
@@ -179,6 +214,17 @@ Private Sub suite_date()
     Test_True mod_regex.Regex_Test("^\d{6}$", mod_date.Date_Stamp("time")), "Date_Stamp(time): hhmmss"
     Test_Equal (Len(mod_date.Date_Stamp("datetime"))), 14, "Date_Stamp(datetime): 长度"
     Test_Equal (Len(mod_date.Date_Stamp())), 16, "Date_Stamp()默认: 长度"
+
+    ' UTC 换算 / 自定义格式化
+    Test_True (Abs(mod_date.Date_FromUtc(mod_date.Date_ToUtc(Now)) - Now) < 2 / 86400#), _
+              "Date_ToUtc/FromUtc: 往返还原本地时间"
+    Test_True (Abs(mod_date.Date_FromUtc(mod_date.Date_UtcNow()) - Now) < 2 / 86400#), _
+              "Date_UtcNow: 转本地后接近 Now"
+    Test_Equal (Len(mod_date.Date_StampUtc("date"))), 8, "Date_StampUtc(date): YYYYMMDD"
+    Test_Equal (Len(mod_date.Date_StampUtc())), 16, "Date_StampUtc()默认: 长度"
+    Test_True mod_regex.Regex_Test("^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$", _
+              mod_date.Date_Format(Now)), "Date_Format: 默认 yyyy-mm-dd hh:nn:ss"
+    Test_Equal mod_date.Date_Format(DateSerial(2026, 1, 2), "yyyy"), "2026", "Date_Format: 自定义模式"
 End Sub
 
 Private Sub suite_file()

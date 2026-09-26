@@ -6,6 +6,20 @@
 > **版本号唯一来源是 `src/VERSION`**（构建时自动生成 `mod_version` 注入运行期）。
 > CHANGELOG 仅在发版时登记版本号与变更内容，不承担"版本定义"职责，防止多来源漂移。
 
+## [Unreleased]
+
+### Added
+- `mod_date` 新增 UTC 与格式化：`Date_UtcNow`（GetSystemTime 取 UTC，无 COM 依赖）、
+  `Date_ToUtc` / `Date_FromUtc`（按当前时区偏移换算，往返可还原）、`Date_StampUtc`（UTC 时间戳，
+  与 `Date_Stamp` 同款 kind 格式）、`Date_Format`（统一默认 `yyyy-mm-dd hh:nn:ss` 的 `Format$` 封装）
+- `mod_string` 新增模板格式化 `String_Format(template, args...)`：`{0}` 占位符替换、`{{` / `}}` 转义；
+  参数越界 / 占位符语法错误 / 多余 `}` 抛错 #45000（调用方错误尽早暴露）
+
+### Fixed
+- `Date_ToUtc` / `Date_FromUtc` 参数名避开 VBA 保留字 `local`：保留字作标识符会使该过程无法编译、
+  进而导致整个工程编译失败（VBE 中该过程标红，`mod_date.Date_ToUtc` 报"方法或类成员未找到"），
+  改用 `dt_local` / `utc_dt`
+
 ## [1.1.0] - 2026-09-26
 
 ### Added

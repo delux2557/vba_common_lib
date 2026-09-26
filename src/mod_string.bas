@@ -15,6 +15,7 @@ Attribute VB_Name = "mod_string"
 '   String_StartsWith(s, prefix)       As Boolean   是否以 prefix 开头
 '   String_EndsWith(s, suffix)         As Boolean   是否以 suffix 结尾
 '   String_LeftPad(s, len[, pad_char]) As String    左填充到指定长度
+'   String_Format(tpl, args...)       As String    模板格式化：{0}/{1} 占位符替换，{{ }} 转义
 '=====================================================================
 Option Explicit
 
@@ -114,6 +115,67 @@ Public Function String_LeftPad(ByVal s As String, ByVal total_len As Long, _
     End If
     If Len(pad_char) < 1 Then pad_char = " "
     String_LeftPad = String$(total_len - Len(s), Left$(pad_char, 1)) & s
+End Function
+
+' 模板格式化：把 {0}/{1}/... 占位符替换为 args 对应参数；{{ 与 }} 转义为字面花括号。
+' 参数越界 / 占位符语法错误 / 多余右花括号均抛错 #45000（调用方错误尽早暴露）。
+Public Function String_Format(ByVal template As String, ParamArray args()) As String
+    Dim out As String
+    Dim i As Long
+    Dim p As Long
+    Dim c As String
+    Dim num_buf As String
+    Dim idx As Long
+    Dim n_args As Long
+    ' ParamArray 为空时 UBound 抛错；探测得到 -1 表示无参数
+    On Error Resume Next
+    n_args = UBound(args)
+    If Err.Number <> 0 Then n_args = -1
+    Err.Clear
+    On Error GoTo 0
+
+    out = ""
+    i = 1
+    Do While i <= Len(template)
+        c = Mid$(template, i, 1)
+        If c = "{" Then
+            If Mid$(template, i + 1, 1) = "{" Then
+                out = out & "{"
+                i = i + 2
+            Else
+                num_buf = ""
+                p = i + 1
+                Do While p <= Len(template) And Mid$(template, p, 1) >= "0" And Mid$(template, p, 1) <= "9"
+                    num_buf = num_buf & Mid$(template, p, 1)
+                    p = p + 1
+                Loop
+                If Len(num_buf) = 0 Or Mid$(template, p, 1) <> "}" Then
+                    Err.Raise 45000, "mod_string", "String_Format: 占位符语法错误 @ " & i
+                End If
+                On Error Resume Next
+                idx = CLng(num_buf)
+                If Err.Number <> 0 Then
+                    Err.Clear
+                    Err.Raise 45000, "mod_string", "String_Format: 占位符序号过大 @ " & i
+                End If
+                On Error GoTo 0
+                If idx > n_args Then Err.Raise 45000, "mod_string", "String_Format: 参数越界 " & idx
+                out = out & CStr(args(idx))
+                i = p + 1
+            End If
+        ElseIf c = "}" Then
+            If Mid$(template, i + 1, 1) = "}" Then
+                out = out & "}"
+                i = i + 2
+            Else
+                Err.Raise 45000, "mod_string", "String_Format: 多余的 '}' @ " & i
+            End If
+        Else
+            out = out & c
+            i = i + 1
+        End If
+    Loop
+    String_Format = out
 End Function
 
 ' 默认去空格的字符集：空格 / 制表 / 回车 / 换行
