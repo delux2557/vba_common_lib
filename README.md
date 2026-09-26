@@ -53,7 +53,7 @@ vba_common_lib/
 
 ---
 
-## 功能清单（73 个对外 API · 12 个功能模块 = 纯层 9 + Excel 层 3）
+## 功能清单（77 个对外 API · 13 个功能模块 = 纯层 10 + Excel 层 3）
 
 ### 纯 VBA 层 `src/`（宿主无关）
 
@@ -104,6 +104,12 @@ vba_common_lib/
 
 ### 版本 / 测试
 `mod_version`（由 `src/VERSION` 自动生成）· `mod_tests`（TDD 断言框架，纯层套件经 `run_protected` 容错分发）。
+
+### 轻量机器学习 `mod_ml`（纯层，经典算法）
+`Ml_LinearReg_Sample`（造数据：真系数+噪声，可复现，训练后与真系数对比检验效果）
+/ `Ml_LinearReg_Train`（最小二乘+高斯消元，多特征；返回 0 基系数数组 `[截距, 权重...]`，可写回单元格）
+/ `Ml_LinearReg_Predict`（新样本预测，单特征可传标量）/ `Ml_LinearReg_RSquared`（拟合优度 R2）
+数据约定：二维数组默认"末列=标签、其余=特征"（`label_col` 可覆盖），与 `Range_Read/WriteValues` 直接衔接。
 
 ### Excel 绑定层 `xls/`（依赖 Excel 宿主，随纯层一起导入）
 

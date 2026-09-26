@@ -9,6 +9,11 @@
 ## [Unreleased]
 
 ### Added
+- `mod_ml` 新增轻量机器学习（纯层经典算法）：`Ml_LinearReg_Sample`（造模拟数据：真系数+均匀噪声，
+  可选 `seed` 固定序列可复现，`coefs` 传真系数后训练可与真值对比）、`Ml_LinearReg_Train`（最小二乘
+  正规方程+高斯消元，支持多特征，返回 0 基系数数组可直接写回单元格）、`Ml_LinearReg_Predict`（新样本
+  预测，单特征可传标量）、`Ml_LinearReg_RSquared`（拟合优度 R2）；数据约定"末列=标签、其余=特征"
+  （`label_col` 可覆盖），与 `Range_Read/WriteValues` 衔接；欠定/非数组/越界等非法输入抛错 #45000
 - `mod_workbook` 新增工作表批量管理：`Sheet_Get`（按名取对象，不存在返回 Nothing）、
   `Sheet_Create`（新建，支持插到指定表前，重名抛错）、`Sheet_Ensure`（幂等：不存在则建，日常
   "确保某张表在"）、`Sheet_Rename`（空名/重名抛错）、`Sheet_Copy`（默认 "原名 (2)" 命名，

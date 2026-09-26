@@ -79,6 +79,7 @@ Public Function Run_All_Tests(Optional ByVal report_path As String = vbNullStrin
     run_protected "suite_sort"
     run_protected "suite_json"
     run_protected "suite_debug"
+    run_protected "suite_ml"
     run_protected "suite_version"
     log_line "===== 结束：通过 " & p_pass & " / 失败 " & p_fail & " ====="
     If Len(report_path) > 0 Then mod_file.File_Write report_path, p_report, False, True
@@ -99,6 +100,7 @@ Private Sub run_protected(ByVal suite As String)
         Case "suite_sort":     suite_sort
         Case "suite_json":     suite_json
         Case "suite_debug":    suite_debug
+        Case "suite_ml":       suite_ml
         Case "suite_version":  suite_version
     End Select
     Exit Sub
@@ -459,4 +461,54 @@ Private Sub suite_version()
     Test_True (Len(mod_version.Version_String()) > 0), "Version_String: 非空"
     Test_True mod_regex.Regex_Test("^\d+\.\d+\.\d+$", mod_version.Version_String()), "Version_String: 符合 SemVer"
     Test_Equal mod_version.Version_String(), mod_version.LIB_VERSION, "Version_String == LIB_VERSION"
+End Sub
+
+Private Sub suite_ml()
+    log_line "--- mod_ml ---"
+    ' 造数据：形状校验（n=20, features=2 → 20 行 3 列）
+    Dim smp As Variant
+    smp = mod_ml.Ml_LinearReg_Sample(20, 2, 1#, seed:=7)
+    Test_True (UBound(smp, 1) = 20), "Ml_LinearReg_Sample: 行数=n"
+    Test_True (UBound(smp, 2) = 3), "Ml_LinearReg_Sample: 列数=特征数+1"
+
+    ' 单特征闭环：真系数 [2,5]，训练结果应逼近
+    smp = mod_ml.Ml_LinearReg_Sample(200, 1, 0.5, Array(2#, 5#), 7)
+    Dim coef1 As Variant
+    coef1 = mod_ml.Ml_LinearReg_Train(smp)
+    Test_True (Abs(coef1(0) - 2#) < 0.3), "Ml_LinearReg_Train: 截距接近真值"
+    Test_True (Abs(coef1(1) - 5#) < 0.3), "Ml_LinearReg_Train: 权重接近真值"
+
+    ' 多特征闭环：真系数 [1,-2,0.5,3]
+    smp = mod_ml.Ml_LinearReg_Sample(300, 3, 0.5, Array(1#, -2#, 0.5, 3#), 11)
+    Dim coef3 As Variant
+    coef3 = mod_ml.Ml_LinearReg_Train(smp)
+    Test_True (Abs(coef3(0) - 1#) < 0.5 And Abs(coef3(1) + 2#) < 0.5 And _
+               Abs(coef3(2) - 0.5) < 0.5 And Abs(coef3(3) - 3#) < 0.5), _
+              "Ml_LinearReg_Train: 多特征系数接近真值"
+
+    ' 预测：多特征数组样本（解析值 1-2*2+0.5*3+3*4 = 10.5，训练带噪声略偏）
+    Dim y_at As Double
+    y_at = mod_ml.Ml_LinearReg_Predict(coef3, Array(2#, 3#, 4#))
+    Test_True (Abs(y_at - 10.5) < 0.6), "Ml_LinearReg_Predict: 多特征预测接近解析值"
+    ' 预测：标量单特征
+    Test_Equal CStr(mod_ml.Ml_LinearReg_Predict(Array(1#, 2#), 3)), "7", "Ml_LinearReg_Predict: 标量单特征"
+
+    ' 评估：低噪声数据 R2 应接近 1
+    smp = mod_ml.Ml_LinearReg_Sample(200, 1, 0.1, Array(2#, 5#), 3)
+    Test_True (mod_ml.Ml_LinearReg_RSquared(smp, coef1) > 0.9), "Ml_LinearReg_RSquared: 低噪声高 R2"
+
+    ' 输入校验：非数组 / coefs 长度不符
+    Dim caught As Boolean
+    caught = False
+    On Error Resume Next
+    mod_ml.Ml_LinearReg_Train 42
+    If Err.Number <> 0 Then caught = True
+    On Error GoTo 0
+    Test_True caught, "Ml_LinearReg_Train: 非数组抛错"
+    caught = False
+    On Error Resume Next
+    mod_ml.Ml_LinearReg_Sample 5, 3, 1#, Array(1#, 2#), 0
+    If Err.Number <> 0 Then caught = True
+    On Error GoTo 0
+    Test_True caught, "Ml_LinearReg_Sample: coefs 长度不符抛错"
 End Sub

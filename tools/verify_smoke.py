@@ -49,10 +49,12 @@ def main():
         r2 = app.Run("mod_string.String_Trim", "  abc  ")
         r3 = app.Run("mod_regex.Regex_Test", ".hello.", "--helloo--")
         r4 = app.Run("mod_array.Array_Contains", [11, 22, 33], 22)
+        r5 = app.Run("mod_ml.Ml_LinearReg_Predict", [1.0, 2.0], 3)
         print(f"mod_date.Date_Stamp(date)   = {r1} (len={len(r1)})")
         print(f"mod_string.String_Trim      = '{r2}'")
         print(f"mod_regex.Regex_Test        = {r3}")
         print(f"mod_array.Array_Contains    = {r4}")
+        print(f"mod_ml.Ml_LinearReg_Predict = {r5}")
         wb.Close(False)
         print("[smoke] 全部调用成功")
     finally:
